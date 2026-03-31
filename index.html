@@ -1229,12 +1229,16 @@ ${exerciseList}
 ${logSummary}
 
 請根據以上狀況生成調整版今日訓練計劃。要求：
-1. 器材被佔用時提供替代動作
+1. 器材被佔用時提供替代動作（可以係任何合適器械，唔限於原有計劃）
 2. 下背唔舒服：skip高脊椎壓力動作，加強核心穩定
 3. 膊頭唔舒服：減少overhead動作，確保旋轉肌熱身足夠
 4. 精力1-2減量30%，精力4-5可加強
 5. 時間不足：保留複合動作，跳過孤立動作
-6. 用廣東話，每個動作列出組數×次數同一句重點提示`;
+6. 用廣東話
+7. 每個動作必須列出以下格式：
+   動作名稱 — 組數×次數
+   初級 / 中級 / 進階 參考重量（根據用家進階水平估計）
+   重點提示（一句）`;
 
   const out=document.getElementById('aiPlanOut');
   out.innerHTML=`<div class="rec-card" style="text-align:center;padding:30px 20px;margin-top:12px">
