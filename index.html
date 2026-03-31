@@ -1230,12 +1230,13 @@ async function callAI(messages){
     role:m.role==='assistant'?'model':'user',
     parts:[{text:m.content}]
   }));
-  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${groqKey}`,{
+  // Prepend system message as first user turn if exists
+  const contents=sysMsg?[{role:'user',parts:[{text:sysMsg}]},{role:'model',parts:[{text:'明白，我會按照你嘅指示幫助你。'}]},...convo]:convo;
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${groqKey}`,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      systemInstruction:{parts:[{text:sysMsg}]},
-      contents:convo,
+      contents,
       generationConfig:{maxOutputTokens:500,temperature:0.7}
     })
   });
