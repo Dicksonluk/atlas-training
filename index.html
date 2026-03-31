@@ -321,6 +321,18 @@ input[type=range]::-webkit-slider-thumb {
 .plan-row-label { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 2px; color: var(--amber); margin-bottom: 8px; }
 .plan-chat { background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 16px; margin-top: 16px; }
 .plan-out-text { font-size: 13px; line-height: 1.8; color: var(--cream); white-space: pre-wrap; }
+/* AI Plan in TRAIN page */
+.ai-plan-banner { background:linear-gradient(135deg,rgba(232,160,48,0.12),rgba(200,72,32,0.08)); border:1px solid var(--amber); border-radius:4px; padding:14px 16px; margin-bottom:16px; }
+.ai-plan-banner-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.ai-plan-banner-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:900; color:var(--amber); }
+.ai-plan-ex { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:2px; background:rgba(0,0,0,0.25); border-left:3px solid var(--amber); margin-bottom:6px; transition:opacity 0.2s; }
+.ai-plan-ex.done { border-left-color:var(--olive); opacity:0.55; }
+.ai-plan-ex-body { flex:1; min-width:0; }
+.ai-plan-ex-name { font-weight:700; font-size:13px; color:var(--cream); }
+.ai-plan-ex-sets { font-family:'Courier Prime',monospace; font-size:11px; color:var(--amber); margin-top:1px; }
+.ai-plan-ex-note { font-size:11px; color:var(--dim); margin-top:1px; }
+.ai-plan-log-btn { font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:1px; padding:5px 10px; border-radius:2px; cursor:pointer; border:1px solid var(--border2); background:transparent; color:var(--dim); white-space:nowrap; transition:all 0.15s; }
+.ai-plan-log-btn.done { background:var(--olive); border-color:var(--olive); color:#fff; }
 .ai-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; color: var(--amber); text-shadow: 2px 2px 0 var(--rust); margin-bottom: 4px; }
 .ai-sub { font-size: 12px; color: var(--dim); font-family: 'Courier Prime', monospace; }
 
@@ -849,12 +861,10 @@ window._time=60; window._sport=0; window._sore=false;
 // Groq
 let groqKey = localStorage.getItem('atlas_groq_key')||'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';
 let chatHistory = [];
-// AI planner state
-window._aiEnergy = 3;
-window._aiBack = 'ok';
-window._aiShoulder = 'ok';
-window._aiTime = 60;
-window._aiEquip = new Set();
+// AI plan
+const _todayDateStr = new Date().toISOString().split('T')[0];
+let aiPlan = null;
+try { aiPlan = JSON.parse(localStorage.getItem('atlas_ai_plan_'+_todayDateStr)||'null'); } catch(e){}
 
 // Weight log
 const WEIGHT_KEY = 'atlas_weight';
@@ -1138,153 +1148,133 @@ function genRec() {
 }
 
 // ── AI PAGE ───────────────────────────────────────────────────
+function getSystemPrompt(){
+  const logSummary=buildLogSummary();
+  return `你係一個專業私人健身教練AI，專門協助以下這位用家。你已完全了解佢嘅所有資料，回答時要針對性，唔好問佢已提供過嘅資料。
+
+年齡：41歲 | 身高：181cm | 體重：86kg（目標減脂）| 訓練經驗：20年進階水平
+體質：易積脂肪，工作忙容易中斷訓練
+
+運動背景：Gym力量訓練（複合動作技術到位）、室內排球（前排主攻，近兩年因傷爆發力下降）、偶爾網球
+
+【傷患 — 非常重要】
+右膊頭：Rotator Cuff Repair + Acromioplasty手術，已康復。每日必做：Band External Rotation×15、Band Pull-Apart×20、Wall Slide×10、Face Pull×15。永久避免：Behind-neck Press、Upright Row、Fly幅度過大。
+腰椎：L4/L5/S1椎間盤輕微突出，物理治療後改善。絕對避免：傳統Deadlift、Heavy Back Squat、借腰爆發。必用：RDL代替Deadlift、Goblet Squat代替Back Squat。
+
+目標優先次序：減脂 > 增肌（胸線條重點）> 力量 > 排球爆發力 > 體能耐力
+
+每週安排：週一Push1、週二Pull1、週三Legs A、週四Push2、週五Pull2、週六Legs B、週日排球
+
+${logSummary}
+
+回答指引：用廣東話、保持PT對話感、專業但易明、針對佢具體情況、簡短直接。
+當你提出今日訓練計劃時，在最後加上以下格式（唔好改格式）：
+[PLAN]
+動作名稱|組數×次數|重點提示
+動作名稱|組數×次數|重點提示
+[/PLAN]`;
+}
+
 function renderAI() {
   const hasKey=!!groqKey;
   const pg=document.getElementById('page-ai');
-  const e=window._aiEnergy, b=window._aiBack, sh=window._aiShoulder, t=window._aiTime;
-  const eq=window._aiEquip;
-  const eChips=[1,2,3,4,5].map(n=>`<button class="chip ${e===n?'sel':''}" onclick="selAiChip('energy',this,${n})">${n}</button>`).join('');
-  const bChips=[{v:'ok',l:'正常'},{v:'mild',l:'少少唔舒服'},{v:'bad',l:'唔舒服'}].map(({v,l})=>`<button class="chip ${b===v?'sel':''}" onclick="selAiChip('back',this,'${v}')">${l}</button>`).join('');
-  const sChips=[{v:'ok',l:'正常'},{v:'mild',l:'少少唔舒服'},{v:'bad',l:'唔舒服'}].map(({v,l})=>`<button class="chip ${sh===v?'sel':''}" onclick="selAiChip('shoulder',this,'${v}')">${l}</button>`).join('');
-  const tChips=[30,45,60,90].map(n=>`<button class="chip ${t===n?'sel':''}" onclick="selAiChip('time',this,${n})">${n}分鐘</button>`).join('');
-  const eqChips=['Smith Machine','深蹲架','Cable','Bench','Dumbbell'].map(n=>`<button class="chip ${eq.has(n)?'sel':''}" onclick="togEquip(this,'${n}')">${n}</button>`).join('');
+  const hasPlan=!!aiPlan;
 
   pg.innerHTML=`<div class="ai-page">
     <div class="ai-header">
       <div class="deco-line"><span>A.I. COACH</span></div>
       <div class="ai-title">ATLAS<br><em>Intelligence</em></div>
-      <div class="ai-sub">// POWERED BY GROQ · 智能每日訓練計劃</div>
+      <div class="ai-sub">// 你嘅私人AI訓練教練</div>
     </div>
-
     ${!hasKey?`<div class="api-setup card-fly">
-      <div class="api-setup-label">// GROQ API KEY 設定</div>
-      <div class="api-setup-desc">去 console.groq.com 攞免費API Key（唔需要信用卡），輸入後AI Coach即刻啟動。</div>
+      <div class="api-setup-label">// API KEY 設定</div>
+      <div class="api-setup-desc">去 openrouter.ai 攞免費API Key，輸入後AI Coach即刻啟動。</div>
       <div class="api-input-wrap">
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="貼入你嘅Groq API Key..." value="">
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="貼入API Key..." value="">
         <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
       </div>
-    </div>`:`<div class="api-setup card-fly" style="padding:10px 16px;margin-bottom:12px">
+    </div>`:`<div class="api-setup" style="padding:8px 16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <span style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:var(--olive)">✓ AI COACH ONLINE</span>
         <button onclick="document.getElementById('keyWrap').style.display='block';this.style.display='none'" style="background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:'Courier Prime',monospace">換Key</button>
       </div>
-      <div id="keyWrap" style="display:none;margin-top:10px">
-        <div class="api-input-wrap">
-          <input class="api-input" type="password" id="apiKeyInput" placeholder="輸入新Key..." value="">
-          <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
-        </div>
-      </div>
+      <div id="keyWrap" style="display:none;margin-top:8px"><div class="api-input-wrap">
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="輸入新Key..." value="">
+        <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
+      </div></div>
     </div>`}
-
-    <div class="plan-checkin card-fly" style="animation-delay:0.05s">
-      <div class="api-setup-label">// 今日狀況 CHECK-IN</div>
-      <div class="plan-row"><div class="plan-row-label">整體精力</div><div class="chip-row">${eChips}</div></div>
-      <div class="plan-row"><div class="plan-row-label">下背</div><div class="chip-row">${bChips}</div></div>
-      <div class="plan-row"><div class="plan-row-label">右膊頭</div><div class="chip-row">${sChips}</div></div>
-      <div class="plan-row"><div class="plan-row-label">可用時間</div><div class="chip-row">${tChips}</div></div>
-      <div class="plan-row"><div class="plan-row-label">器材被佔用（可多選）</div><div class="chip-row">${eqChips}</div></div>
-    </div>
-
-    <button class="gen-btn card-fly" style="animation-delay:0.1s;width:100%;margin-bottom:0" onclick="genDailyPlan()" ${!hasKey?'disabled':''}>
-      ${hasKey?'— AI 生成今日計劃 —':'請先設定 API Key'}
-    </button>
-
-    <div id="aiPlanOut"></div>
-
-    ${hasKey?`<div class="plan-chat card-fly" style="animation-delay:0.15s">
-      <div class="api-setup-label">// 跟進問題</div>
-      <div class="chat-msgs" id="chatMsgs" style="max-height:220px;min-height:0"></div>
-      <div class="chat-input-row">
-        <textarea class="chat-input" id="chatInput" placeholder="問AI教練..." rows="2"></textarea>
-        <button class="chat-send" onclick="sendChat()">▶</button>
+    ${hasPlan?`<div class="api-setup" style="padding:10px 16px;margin-bottom:12px;border-color:var(--olive)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:var(--olive)">✓ 今日計劃已接受</span>
+        <button onclick="showPage('train')" style="background:var(--olive);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:10px;padding:4px 10px;cursor:pointer;border-radius:2px">前往 TRAIN →</button>
       </div>
     </div>`:''}
+    <div class="chat-msgs" id="chatMsgs" style="min-height:180px;max-height:55vh"></div>
+    ${hasKey?`<div id="acceptWrap"></div>
+    <div class="chat-input-row" style="margin-top:8px">
+      <textarea class="chat-input" id="chatInput" placeholder="同AI教練傾..." rows="2"></textarea>
+      <button class="chat-send" onclick="sendChat()">▶</button>
+    </div>`:`<div style="text-align:center;padding:20px;font-family:'Courier Prime',monospace;font-size:12px;color:var(--dim)">請先設定API Key</div>`}
   </div>`;
+
+  if(hasKey && chatHistory.length===0) autoStartAI();
+  else if(chatHistory.length>0){
+    chatHistory.forEach(m=>{ if(m.role!=='system') appendMsg(m.role==='assistant'?'ai':'user',m.content); });
+    checkForPlan(chatHistory[chatHistory.length-1]?.content||'');
+  }
 }
 
-function selAiChip(type,el,val){
-  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
-  el.classList.add('sel');
-  if(type==='energy') window._aiEnergy=val;
-  if(type==='back') window._aiBack=val;
-  if(type==='shoulder') window._aiShoulder=val;
-  if(type==='time') window._aiTime=val;
-}
-function togEquip(el,name){
-  if(window._aiEquip.has(name)){window._aiEquip.delete(name);el.classList.remove('sel');}
-  else{window._aiEquip.add(name);el.classList.add('sel');}
-}
-
-async function genDailyPlan(){
-  if(!groqKey){toast('請先設定API Key');return;}
+async function autoStartAI(){
   const todayIdx=(()=>{const m=[6,0,1,2,3,4,5];return m[new Date().getDay()]??0;})();
   const day=DAYS[todayIdx];
-  const exerciseList=day.sections.map(sec=>`【${sec.label}】\n`+sec.exercises.map(ex=>`- ${ex.name}（${ex.sets}）${ex.warning?' ⚠'+ex.warning:''}`).join('\n')).join('\n\n');
-  const backTxt={ok:'正常',mild:'少少唔舒服',bad:'唔舒服'}[window._aiBack];
-  const shTxt={ok:'正常',mild:'少少唔舒服',bad:'唔舒服'}[window._aiShoulder];
-  const busyList=[...window._aiEquip];
-  const logSummary=buildLogSummary();
-
-  const userMsg=`今日係${day.name}，原定訓練：${day.title}
-
-今日狀況：
-- 整體精力：${window._aiEnergy}/5
-- 下背：${backTxt}
-- 右膊頭：${shTxt}
-- 可用時間：${window._aiTime}分鐘
-${busyList.length?`- 器材被佔用（唔得用）：${busyList.join('、')}\n`:''
-}原定今日訓練動作：
-${exerciseList}
-
-${logSummary}
-
-請根據以上狀況生成調整版今日訓練計劃。要求：
-1. 器材被佔用時提供替代動作（可以係任何合適器械，唔限於原有計劃）
-2. 下背唔舒服：skip高脊椎壓力動作，加強核心穩定
-3. 膊頭唔舒服：減少overhead動作，確保旋轉肌熱身足夠
-4. 精力1-2減量30%，精力4-5可加強
-5. 時間不足：保留複合動作，跳過孤立動作
-6. 用廣東話
-7. 每個動作必須列出以下格式：
-   動作名稱 — 組數×次數
-   初級 / 中級 / 進階 參考重量（根據用家進階水平估計）
-   重點提示（一句）`;
-
-  const out=document.getElementById('aiPlanOut');
-  out.innerHTML=`<div class="rec-card" style="text-align:center;padding:30px 20px;margin-top:12px">
-    <div class="msg-typing" style="justify-content:center"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    <div style="margin-top:12px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim)">AI 生成中...</div>
-  </div>`;
-  out.scrollIntoView({behavior:'smooth'});
-
-  const systemPrompt=document.querySelector&&(()=>{
-    // reuse existing system prompt from sendChat context
-    return `你係一個專業健身教練AI，專門協助以下這位用家。回答時針對性，唔好問佢已提供過嘅資料。\n年齡41歲，身高181cm，體重86kg目標減脂，訓練經驗20年進階水平。右膊頭做過Rotator Cuff Repair手術已康復。腰椎間盤退化合併輕微突出，物理治療後改善，絕對避免傳統Deadlift同Heavy Back Squat。目標優先次序：減脂>增肌>力量>排球爆發力。`;
-  })();
-
+  const exList=day.sections.map(s=>`${s.label}: ${s.exercises.map(e=>e.name).join('、')}`).join(' | ');
+  const initMsg=`【新訓練日 — ${day.name} ${day.title}】\n原定動作：${exList}\n\n請你：1)用2-3句話講我最近訓練進度有咩值得留意 2)問我今日身體狀況（精力/腰/膊頭/時間/器材），等我回答後再提出今日計劃。`;
+  const typingId='typing_init';
+  const msgs=document.getElementById('chatMsgs');
+  if(!msgs) return;
+  msgs.innerHTML=`<div class="msg msg-ai" id="${typingId}"><div class="msg-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
   try{
-    const response=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${groqKey}`},
-      body:JSON.stringify({
-        model:'meta-llama/llama-3.3-70b-instruct:free',
-        messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}],
-        max_tokens:800,temperature:0.7
-      })
+    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${groqKey}`},
+      body:JSON.stringify({model:'meta-llama/llama-3.3-70b-instruct:free',
+        messages:[{role:'system',content:getSystemPrompt()},{role:'user',content:initMsg}],
+        max_tokens:400,temperature:0.7})
     });
-    const data=await response.json();
-    if(!response.ok) throw new Error(data.error?.message||`HTTP ${response.status}`);
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
     const reply=data.choices?.[0]?.message?.content;
-    if(!reply) throw new Error('回應格式異常');
-    out.innerHTML=`<div class="rec-card" style="margin-top:12px">
-      <div class="rec-label">// AI 今日訓練計劃</div>
-      <div class="plan-out-text">${reply.replace(/</g,'&lt;')}</div>
-    </div>`;
-    out.scrollIntoView({behavior:'smooth'});
-    chatHistory=[{role:'user',content:userMsg},{role:'assistant',content:reply}];
+    if(!reply) throw new Error('Empty response');
+    chatHistory=[{role:'user',content:initMsg},{role:'assistant',content:reply}];
+    document.getElementById(typingId)?.remove();
+    appendMsg('ai',reply);
+    checkForPlan(reply);
   }catch(e){
-    out.innerHTML=`<div class="rec-card" style="margin-top:12px"><div class="rec-note">連接出現問題：${e.message}</div></div>`;
+    document.getElementById(typingId)?.remove();
+    appendMsg('ai',`連接出現問題：${e.message}`);
   }
+}
+
+function checkForPlan(text){
+  const match=text.match(/\[PLAN\]([\s\S]*?)\[\/PLAN\]/);
+  if(!match) return;
+  const exercises=match[1].trim().split('\n').filter(l=>l.trim()).map(line=>{
+    const parts=line.split('|').map(s=>s.trim());
+    return {name:parts[0]||'',sets:parts[1]||'',note:parts[2]||'',done:false};
+  }).filter(e=>e.name);
+  if(!exercises.length) return;
+  const wrap=document.getElementById('acceptWrap');
+  if(!wrap) return;
+  wrap.innerHTML=`<button class="gen-btn" style="width:100%;margin:8px 0" onclick="acceptAIPlan()">✓ 接受今日計劃 — 前往 TRAIN 頁開始訓練</button>`;
+  wrap._plan=exercises;
+}
+
+function acceptAIPlan(){
+  const wrap=document.getElementById('acceptWrap');
+  if(!wrap?._plan) return;
+  aiPlan=wrap._plan;
+  localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
+  toast('✓ 今日計劃已儲存！');
+  showPage('train');
 }
 
 function saveApiKey() {
@@ -1310,113 +1300,7 @@ async function sendChat() {
   msgs.innerHTML+=`<div class="msg msg-ai" id="${typingId}"><div class="msg-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
   msgs.scrollTop=msgs.scrollHeight;
 
-  // Build context
-  const logSummary=buildLogSummary();
-  const systemPrompt=`你係一個專業健身教練AI，專門協助以下這位用家。你已經完全了解佢嘅所有資料，回答時要針對性，唔好問佢已經提供過嘅資料。
-
-═══════════════════════════════
-個人資料
-═══════════════════════════════
-年齡：41歲
-身高：181cm
-體重：86kg（目標減脂）
-訓練經驗：20年，進階水平
-體質：易積脂肪，工作忙碌容易導致訓練中斷，過去兩年因傷患斷斷續續
-
-═══════════════════════════════
-運動背景
-═══════════════════════════════
-• Gym力量訓練：主力，所有複合動作技術到位（Bench Press、Squat、Deadlift、OHP、Pull-up、Row）
-• 排球：室內6人正式競技，前排進攻主力，每週固定週日。以往靠天生爆發力進攻，從未系統性訓練過彈跳力。近兩年因腰傷少練腳，騰空明顯下降，影響前排進攻表現，係重要心理動力來源
-• 網球：不定期，時間唔固定
-
-═══════════════════════════════
-傷患記錄（非常重要）
-═══════════════════════════════
-
-【右膊頭手術 — 已康復】
-手術：Right Shoulder Rotator Cuff Repair + Acromioplasty + ACJ Debridement + Distal Claviculectomy
-現況：康復良好，活動度比術前更好，Incline Bench落幅更大。但去年12月連續打5日網球後膊頭出現疲勞痛，反映旋轉肌耐力及肩胛穩定性需加強。
-每日必做：Band External Rotation × 15、Band Pull-Apart × 20、Wall Slide × 10、Face Pull × 15
-永久避免：Behind-the-neck Press、Upright Row、Dumbbell Fly幅度過大
-
-【腰椎間盤退化合併輕微突出 — 需長期管理】
-MRI確診：多個腰椎間盤間隙收窄，軟骨鈣化，下腰（L4/L5或L5/S1）椎間盤輕微突出接近神經根。醫生評估無需手術。腰部肌肉緊張時椎間盤壓迫神經根引起痛楚。物理治療後近期明顯改善。
-絕對避免：傳統Deadlift、Heavy Back Squat、借腰爆發動作
-必用替代：Romanian Deadlift代替Deadlift、Goblet Squat代替Back Squat
-每日必做核心Warm-up：Dead Bug、Bird Dog、Glute Bridge、Cat-Cow
-
-【右腳輕微外傾】
-右小腿輕微向外傾斜，放鬆時反而較直。照片可見右膝明顯比左膝向內靠，小腿相對向外。懷疑右腳足弓輕微塌陷（Overpronation）導致。建議諮詢足科醫生做步態分析，考慮訂製鞋墊。Squat及Lunge時需特別留意右膝方向。
-
-═══════════════════════════════
-訓練目標（優先次序）
-═══════════════════════════════
-1. 減脂 — 3個月內見明顯身材改變（最優先）
-2. 增肌 — 胸部線條係重點，背部厚度同闊度並重
-3. 提升力量 — 特別係胸背
-4. 排球爆發力 — 恢復前排進攻騰空感同扣球控制
-5. 體能耐力 — 打波唔容易疲勞
-
-═══════════════════════════════
-身體弱點分析
-═══════════════════════════════
-
-【胸部】
-上胸飽滿度不足，內側線條唔夠清晰，下胸輪廓線唔夠明顯。右胸比左胸略發達（膊頭術前代償導致）。問題根源：長期Barbell Bench為主，胸肌從未完全收縮，內側同上胸發展落後。有一定程度係先天肌肉附著點問題（亞洲人上胸附著點較高）。
-改善重點：Incline Press放第一、Cable Fly升級為主力動作、所有Dumbbell動作先左後右確保平衡
-
-【核心】
-腰椎問題令核心訓練成為保護脊椎嘅關鍵。
-進階路線：Dead Bug/Pallof Press（而家）→ Hanging Knee Raise（Phase 2）→ Hanging Leg Raise（Phase 3）
-
-【排球爆發力】
-從未系統性訓練，有大量未開發潛力。
-進階路線：Broad Jump/Box Jump/Approach Jump（Phase 1）→ Depth Drop to Jump（Phase 2）→ 完整排球進攻模擬（Phase 3）
-
-【手臂】
-二頭山峰及三頭長頭發展不足。
-二頭重點：Incline DB Curl（山峰）+ Hammer Curl（粗度）
-三頭重點：Overhead Extension（長頭）+ Skull Crusher
-
-═══════════════════════════════
-每週訓練安排
-═══════════════════════════════
-週一：Push 1（重胸 · 膊頭穩定 · 三頭）
-週二：Pull 1（背厚度 · 二頭 · Mobility）
-週三：Legs A（功能性下肢 · 爆發力Phase 1）
-週四：Push 2（胸線條 · Cable · 上下斜）
-週五：Pull 2（背闊度 · 核心強化）
-週六：Legs B（彈跳爆發 · 手臂專項）
-週日：排球
-
-═══════════════════════════════
-飲食同補充品
-═══════════════════════════════
-減脂期：Keto飲食
-Protein Powder：訓練後30分鐘內
-Creatine：每日固定時間
-魚油：每日
-
-═══════════════════════════════
-性格同訓練習慣
-═══════════════════════════════
-• 工作忙碌時容易中斷訓練，需要彈性方案
-• 鍾意做重嘅複合動作，天生喜歡力量訓練
-• 對排球進攻表現有要求，爆發力係重要動力來源
-• 思維清晰，會主動思考訓練原理，唔係盲目跟從
-
-${logSummary}
-
-═══════════════════════════════
-回答指引
-═══════════════════════════════
-• 用廣東話回答
-• 專業但易明，唔好太學術
-• 針對佢嘅具體情況，唔好給generic建議
-• 回答唔需要太長，要實用
-• 如果佢問訓練調整，要同時考慮佢嘅腰背同膊頭狀況
-• 記住佢嘅目標優先次序：減脂 > 增肌 > 力量 > 排球爆發力`;
+  const systemPrompt=getSystemPrompt();
 
   chatHistory.push({role:'user',content:msg});
 
@@ -1438,6 +1322,7 @@ ${logSummary}
     chatHistory.push({role:'assistant',content:reply});
     document.getElementById(typingId)?.remove();
     appendMsg('ai', reply);
+    checkForPlan(reply);
   } catch(e) {
     document.getElementById(typingId)?.remove();
     appendMsg('ai',`連接出現問題：${e.message||'請檢查API Key或網絡連接。'}`);
@@ -1494,6 +1379,40 @@ function setDay(i) {
   if(tb){tb.style.opacity='0';tb.style.transform='translateY(10px)';setTimeout(()=>{renderDayContent();tb.style.transition='all 0.3s ease';tb.style.opacity='1';tb.style.transform='translateY(0)';},150);}
 }
 
+function buildAIPlanSection(){
+  if(!aiPlan||!aiPlan.length) return '';
+  let rows=aiPlan.map((ex,i)=>{
+    const cls=ex.done?'ai-plan-ex done':'ai-plan-ex';
+    return `<div class="${cls}" id="aipex_${i}">
+      <div class="ai-plan-ex-body">
+        <div class="ai-plan-ex-name">${ex.name}</div>
+        <div class="ai-plan-ex-sets">${ex.sets||''}</div>
+        ${ex.note?`<div class="ai-plan-ex-note">${ex.note}</div>`:''}
+      </div>
+      <button class="ai-plan-log-btn${ex.done?' done':''}" onclick="logAIPlanEx(${i})">${ex.done?'✓':'LOG'}</button>
+    </div>`;
+  }).join('');
+  return `<div class="ai-plan-banner">
+    <div class="ai-plan-banner-hdr">
+      <svg viewBox="0 0 24 24" width="14" height="14" style="fill:var(--amber);margin-right:4px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+      <span class="ai-plan-banner-title">// AI 今日計劃</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function logAIPlanEx(i){
+  if(!aiPlan||!aiPlan[i]) return;
+  aiPlan[i].done=!aiPlan[i].done;
+  localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
+  const el=document.getElementById('aipex_'+i);
+  if(el){
+    el.className=aiPlan[i].done?'ai-plan-ex done':'ai-plan-ex';
+    const btn=el.querySelector('.ai-plan-log-btn');
+    if(btn){btn.textContent=aiPlan[i].done?'✓':'LOG';btn.className='ai-plan-log-btn'+(aiPlan[i].done?' done':'');}
+  }
+}
+
 function renderDayContent() {
   const day=DAYS[activeDay];
   const tb=document.getElementById('trainBody');
@@ -1543,6 +1462,10 @@ function renderDayContent() {
     </div>`;
 
   if(day.warmup) html+=`<div class="wu-strip"><strong>// WARM-UP — 必做</strong>${day.warmup}</div>`;
+
+  // Show AI plan if viewing today
+  const _todayIdx=(()=>{const m=[6,0,1,2,3,4,5];return m[new Date().getDay()]??0;})();
+  if(activeDay===_todayIdx && aiPlan && aiPlan.length) html+=buildAIPlanSection();
 
   day.sections.forEach((sec,si)=>{
     const secTag=sec.exercises[0]?.tags?.[0]||'';
