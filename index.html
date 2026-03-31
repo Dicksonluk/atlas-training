@@ -1047,8 +1047,15 @@ function renderCheckin() {
         </div>
       </div>
       <div class="ci-card card-fly" style="animation-delay:0.22s">
+        <div class="ci-icon" style="background:rgba(232,160,48,0.1);color:var(--amber)"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 4 L14 4 M2 8 L11 8 M2 12 L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="ci-label">// 05 — NOTES</div>
+        <div class="ci-q">有咩特別要話AI知？（可留空）</div>
+        <textarea id="ciNotes" rows="2" placeholder="例如：腰有少少緊、右膊頭唔舒服、今日好累..."
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);padding:10px 12px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:2px;resize:none;margin-top:4px;box-sizing:border-box"></textarea>
+      </div>
+      <div class="ci-card card-fly" style="animation-delay:0.24s">
         <div class="ci-icon" style="background:rgba(232,160,48,0.1);color:var(--amber)"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 14 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 14 Q5 8 8 8 Q11 8 11 14" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="8" x2="8" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="11" x2="5.5" y2="11" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><line x1="10.5" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg></div>
-        <div class="ci-label">// 05 — BODY WEIGHT</div>
+        <div class="ci-label">// 06 — BODY WEIGHT</div>
         <div class="ci-q">今日體重（可選）</div>
         <div style="display:flex;align-items:center;gap:10px">
           <input type="number" id="weightInput" step="0.1" placeholder="86.0"
@@ -1057,7 +1064,14 @@ function renderCheckin() {
           <span style="font-family:'Courier Prime',monospace;font-size:12px;color:var(--dim)">KG</span>
         </div>
       </div>
-      <button class="gen-btn card-fly" style="animation-delay:0.25s" onclick="genRec()">— 生成今日計劃 —</button>
+      <div style="display:flex;gap:10px;margin:0 0 20px" class="card-fly" style="animation-delay:0.28s">
+        <button class="gen-btn" style="flex:1;background:linear-gradient(135deg,rgba(232,160,48,0.2),rgba(200,72,32,0.15));border-color:var(--amber)" onclick="goToAI()">
+          <div style="font-size:11px;letter-spacing:1px">✦ AI 分析今日計劃</div>
+        </button>
+        <button class="gen-btn" style="flex:1;background:rgba(143,168,64,0.12);border-color:var(--olive)" onclick="goDirectTrain()">
+          <div style="font-size:11px;letter-spacing:1px">▶ 直接開始訓練</div>
+        </button>
+      </div>
       <div id="recOut"></div>
     </div>`;
 }
@@ -1085,6 +1099,33 @@ function setSore(v) {
   document.getElementById('tNo').className='tog'+(v?'':' on');
   document.getElementById('tYes').className='tog'+(v?' warn':'');
 }
+function goDirectTrain() {
+  saveWeightFromInput();
+  showPage('train');
+}
+
+function goToAI() {
+  saveWeightFromInput();
+  if(!groqKey){ toast('請先喺AI頁設定API Key'); showPage('ai'); return; }
+  const energy=parseInt(document.getElementById('eVal').textContent);
+  const t=window._time||60, s=window._sport||0, sore=window._sore||false;
+  const notes=document.getElementById('ciNotes')?.value?.trim()||'';
+  const todayIdx=(()=>{const m=[6,0,1,2,3,4,5];return m[new Date().getDay()]??0;})();
+  const day=DAYS[todayIdx];
+  const energyLabel=energy<=3?'好低，冇乜力':energy<=5?'一般':energy<=7?'不錯':' 好高，狀態佳';
+  const timeLabel=t<=30?'30分鐘以內':t<=45?'約45分鐘':t<=60?'約1小時':'90分鐘以上';
+  const checkinMsg=`【今日Check-in — ${day.name} ${day.title}】
+精力：${energy}/10（${energyLabel}）
+可用時間：${timeLabel}
+今週打波：${s}日
+身體狀態：${sore?'⚠ 有啲攰/痛':'✓ 正常'}${notes?`\n特別備注：${notes}`:''}
+
+請根據呢個狀態同我近期訓練記錄，分析今日應該點練，有咩要調整，然後提出具體訓練計劃。`;
+  chatHistory=[];
+  window._pendingCheckin=checkinMsg;
+  showPage('ai');
+}
+
 function genRec() {
   saveWeightFromInput();
   const energy=parseInt(document.getElementById('eVal').textContent);
@@ -1217,8 +1258,10 @@ function renderAI() {
     </div>`:`<div style="text-align:center;padding:20px;font-family:'Courier Prime',monospace;font-size:12px;color:var(--dim)">請先設定API Key</div>`}
   </div>`;
 
-  if(hasKey && chatHistory.length===0) autoStartAI();
-  else if(chatHistory.length>0){
+  if(hasKey && chatHistory.length===0){
+    if(window._pendingCheckin){ autoStartAI(window._pendingCheckin); window._pendingCheckin=null; }
+    else autoStartAI();
+  } else if(chatHistory.length>0){
     chatHistory.forEach(m=>{ if(m.role!=='system') appendMsg(m.role==='assistant'?'ai':'user',m.content); });
     checkForPlan(chatHistory[chatHistory.length-1]?.content||'');
   }
@@ -1254,11 +1297,11 @@ async function callAI(messages){
   return reply;
 }
 
-async function autoStartAI(){
+async function autoStartAI(prebuiltMsg){
   const todayIdx=(()=>{const m=[6,0,1,2,3,4,5];return m[new Date().getDay()]??0;})();
   const day=DAYS[todayIdx];
   const exList=day.sections.map(s=>`${s.label}: ${s.exercises.map(e=>e.name).join('、')}`).join(' | ');
-  const initMsg=`【新訓練日 — ${day.name} ${day.title}】\n原定動作：${exList}\n\n請你：1)用2-3句話講我最近訓練進度有咩值得留意 2)問我今日身體狀況（精力/腰/膊頭/時間/器材），等我回答後再提出今日計劃。`;
+  const initMsg=prebuiltMsg||`【新訓練日 — ${day.name} ${day.title}】\n原定動作：${exList}\n\n請你：1)用2-3句話講我最近訓練進度有咩值得留意 2)問我今日身體狀況（精力/腰/膊頭/時間/器材），等我回答後再提出今日計劃。`;
   const typingId='typing_init';
   const msgs=document.getElementById('chatMsgs');
   if(!msgs) return;
