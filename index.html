@@ -1209,10 +1209,10 @@ function getSystemPrompt(){
 ${logSummary}
 
 回答指引：用廣東話、保持PT對話感、專業但易明、針對佢具體情況、簡短直接。
-當你提出今日訓練計劃時，在最後加上以下格式（唔好改格式）：
+當你提出今日訓練計劃時，在最後加上以下格式（唔好改格式，每行係一個真實動作，唔好加標題行或說明行）：
 [PLAN]
-動作名稱|組數×次數|重點提示
-動作名稱|組數×次數|重點提示
+實際動作名稱|組數×次數|重點提示
+實際動作名稱|組數×次數|重點提示
 [/PLAN]`;
 }
 
@@ -1324,7 +1324,7 @@ function checkForPlan(text){
   const exercises=match[1].trim().split('\n').filter(l=>l.trim()).map(line=>{
     const parts=line.split('|').map(s=>s.trim());
     return {name:parts[0]||'',sets:parts[1]||'',note:parts[2]||'',done:false};
-  }).filter(e=>e.name);
+  }).filter(e=>e.name && e.name!=='動作名稱' && !e.name.startsWith('---') && e.name!=='Exercise');
   if(!exercises.length) return;
   const wrap=document.getElementById('acceptWrap');
   if(!wrap) return;
