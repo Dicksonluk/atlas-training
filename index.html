@@ -1475,15 +1475,18 @@ function setDay(i) {
 function buildAIPlanSection(){
   if(!aiPlan||!aiPlan.length) return '';
   let rows=aiPlan.map((ex,i)=>{
+    const k=`aip_${_todayDateStr}_${i}`;
+    const isOpen=ui['aip_open_'+i];
     const cls=ex.done?'ai-plan-ex done':'ai-plan-ex';
+    const logPanel=isOpen?`<div style="padding:10px 12px;background:var(--bg3);border-top:1px solid var(--border)">${buildSetLog(k,ex.sets||'3')}</div>`:'';
     return `<div class="${cls}" id="aipex_${i}">
       <div class="ai-plan-ex-body">
         <div class="ai-plan-ex-name">${ex.name}</div>
         <div class="ai-plan-ex-sets">${ex.sets||''}</div>
         ${ex.note?`<div class="ai-plan-ex-note">${ex.note}</div>`:''}
       </div>
-      <button class="ai-plan-log-btn${ex.done?' done':''}" onclick="logAIPlanEx(${i})">${ex.done?'✓':'LOG'}</button>
-    </div>`;
+      <button class="ai-plan-log-btn${ex.done?' done':''}" onclick="toggleAIPlanLog(${i})">${ex.done?'✓':'LOG'}</button>
+    </div>${logPanel}`;
   }).join('');
   return `<div class="ai-plan-banner">
     <div class="ai-plan-banner-hdr">
@@ -1494,16 +1497,24 @@ function buildAIPlanSection(){
   </div>`;
 }
 
+function toggleAIPlanLog(i){
+  ui['aip_open_'+i]=!ui['aip_open_'+i];
+  renderDayContent();
+}
+
+function markAIPlanDone(i){
+  if(!aiPlan||!aiPlan[i]) return;
+  aiPlan[i].done=true;
+  ui['aip_open_'+i]=false;
+  localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
+  renderDayContent();
+}
+
 function logAIPlanEx(i){
   if(!aiPlan||!aiPlan[i]) return;
   aiPlan[i].done=!aiPlan[i].done;
   localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
-  const el=document.getElementById('aipex_'+i);
-  if(el){
-    el.className=aiPlan[i].done?'ai-plan-ex done':'ai-plan-ex';
-    const btn=el.querySelector('.ai-plan-log-btn');
-    if(btn){btn.textContent=aiPlan[i].done?'✓':'LOG';btn.className='ai-plan-log-btn'+(aiPlan[i].done?' done':'');}
-  }
+  renderDayContent();
 }
 
 function renderDayContent() {
@@ -1691,6 +1702,15 @@ function markDone(k) {
   if (!logData[k]) logData[k] = {};
   logData[k].done = true;
   saveLog();
+  // Also mark AI plan exercise if applicable
+  if(k.startsWith('aip_')){
+    const i=parseInt(k.split('_').pop());
+    if(aiPlan&&aiPlan[i]){
+      aiPlan[i].done=true;
+      ui['aip_open_'+i]=false;
+      localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
+    }
+  }
   toast('✓ COMPLETE!');
   renderDayContent();
 }
