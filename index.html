@@ -1437,13 +1437,12 @@ function renderDayContent() {
 
       const yq=encodeURIComponent(ex.ytSearch||ex.name);
       let yt='';
-      if(ex.ytId) yt=`<a href="https://www.youtube.com/watch?v=${ex.ytId}" target="_blank" style="display:block;position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin-bottom:10px;text-decoration:none">
-        <img src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover">
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;background:rgba(26,17,8,0.85);border:2px solid var(--amber);display:flex;align-items:center;justify-content:center">
+      if(ex.ytId) yt=`<div class="yt-wrap" id="yw_${k}">
+        <img class="yt-thumb" src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt="">
+        <button class="yt-play" onclick="loadYT('${k}','${ex.ytId}')">
           <svg viewBox="0 0 24 24" style="fill:var(--amber);width:20px;height:20px;margin-left:4px"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:Courier Prime,monospace;font-size:10px;color:var(--cream);letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,0.8)">▶ 點擊開啟YouTube</div>
-      </a>`;
+        </button>
+      </div>`;
       yt+=`<a class="yt-link" href="https://www.youtube.com/results?search_query=${yq}" target="_blank"><span class="yt-ic">▶</span> YouTube搜尋「${ex.name}」教學</a>`;
 
       html+=`
