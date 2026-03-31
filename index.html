@@ -1309,11 +1309,16 @@ ${logSummary}
       })
     });
     const data=await response.json();
-    if(data.error) throw new Error(data.error.message||'API錯誤');
-    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||'唔好意思，請再試一次。';
+    console.log('[ATLAS AI] response:', JSON.stringify(data));
+    if(data.error) throw new Error(`${data.error.code}: ${data.error.message}`);
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blockReason=data.promptFeedback?.blockReason;
+    if(blockReason) throw new Error(`內容被封鎖：${blockReason}`);
+    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!reply) throw new Error(`回應格式異常：${JSON.stringify(data).slice(0,200)}`);
     chatHistory.push({role:'model',parts:[{text:reply}]});
     document.getElementById(typingId)?.remove();
-    appendMsg('ai',reply);
+    appendMsg('ai', reply);
   } catch(e) {
     document.getElementById(typingId)?.remove();
     appendMsg('ai',`連接出現問題：${e.message||'請檢查API Key或網絡連接。'}`);
