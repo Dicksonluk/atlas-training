@@ -1287,14 +1287,51 @@ async function callAI(messages){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       contents,
-      generationConfig:{maxOutputTokens:1500,temperature:0.7}
+      generationConfig:{maxOutputTokens:2048,temperature:0.7}
     })
   });
   const data=await res.json();
   if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
   const reply=data.candidates?.[0]?.content?.parts?.[0]?.text;
   if(!reply) throw new Error('Empty response');
-  return reply;
+  const finishReason=data.candidates?.[0]?.finishReason;
+  return {text:reply, truncated: finishReason==='MAX_TOKENS'};
+}
+
+async function continueAI(){
+  if(!groqKey) return;
+  const btn=document.getElementById('continueBtn');
+  if(btn) btn.remove();
+  const typingId='typing_cont_'+Date.now();
+  const msgs=document.getElementById('chatMsgs');
+  msgs.innerHTML+=`<div class="msg msg-ai" id="${typingId}"><div class="msg-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  try{
+    chatHistory.push({role:'user',content:'請繼續'});
+    const result=await callAI([{role:'system',content:getSystemPrompt()},...chatHistory]);
+    const reply=result.text;
+    chatHistory[chatHistory.length-1]={role:'assistant',content:(chatHistory[chatHistory.length-2]?.content||'')+reply};
+    chatHistory.pop();
+    document.getElementById(typingId)?.remove();
+    appendMsg('ai', reply);
+    if(result.truncated) showContinueBtn();
+    else checkForPlan(chatHistory[chatHistory.length-1]?.content||'');
+  }catch(e){
+    document.getElementById(typingId)?.remove();
+    appendMsg('ai',`連接出現問題：${e.message}`);
+  }
+}
+
+function showContinueBtn(){
+  const msgs=document.getElementById('chatMsgs');
+  if(!msgs||document.getElementById('continueBtn')) return;
+  const btn=document.createElement('button');
+  btn.id='continueBtn';
+  btn.textContent='▼ 繼續輸出';
+  btn.style.cssText='display:block;width:100%;padding:8px;margin-top:6px;background:rgba(232,160,48,0.15);border:1px solid var(--amber);color:var(--amber);font-family:Courier Prime,monospace;font-size:11px;cursor:pointer;border-radius:2px';
+  btn.onclick=continueAI;
+  msgs.appendChild(btn);
+  msgs.scrollTop=msgs.scrollHeight;
 }
 
 async function autoStartAI(prebuiltMsg){
@@ -1307,11 +1344,13 @@ async function autoStartAI(prebuiltMsg){
   if(!msgs) return;
   msgs.innerHTML=`<div class="msg msg-ai" id="${typingId}"><div class="msg-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
   try{
-    const reply=await callAI([{role:'system',content:getSystemPrompt()},{role:'user',content:initMsg}]);
+    const result=await callAI([{role:'system',content:getSystemPrompt()},{role:'user',content:initMsg}]);
+    const reply=result.text;
     chatHistory=[{role:'user',content:initMsg},{role:'assistant',content:reply}];
     document.getElementById(typingId)?.remove();
     appendMsg('ai',reply);
-    checkForPlan(reply);
+    if(result.truncated) showContinueBtn();
+    else checkForPlan(reply);
   }catch(e){
     document.getElementById(typingId)?.remove();
     appendMsg('ai',`連接出現問題：${e.message}`);
@@ -1367,11 +1406,13 @@ async function sendChat() {
   chatHistory.push({role:'user',content:msg});
 
   try {
-    const reply=await callAI([{role:'system',content:getSystemPrompt()},...chatHistory]);
+    const result=await callAI([{role:'system',content:getSystemPrompt()},...chatHistory]);
+    const reply=result.text;
     chatHistory.push({role:'assistant',content:reply});
     document.getElementById(typingId)?.remove();
     appendMsg('ai', reply);
-    checkForPlan(reply);
+    if(result.truncated) showContinueBtn();
+    else checkForPlan(reply);
   } catch(e) {
     chatHistory.pop();
     document.getElementById(typingId)?.remove();
