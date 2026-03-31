@@ -315,6 +315,12 @@ input[type=range]::-webkit-slider-thumb {
 /* ── AI CHAT ── */
 .ai-page { padding: 16px 20px; }
 .ai-header { margin-bottom: 16px; }
+.plan-checkin { background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 16px; margin-bottom: 12px; }
+.plan-row { margin-bottom: 14px; }
+.plan-row:last-child { margin-bottom: 0; }
+.plan-row-label { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 2px; color: var(--amber); margin-bottom: 8px; }
+.plan-chat { background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 16px; margin-top: 16px; }
+.plan-out-text { font-size: 13px; line-height: 1.8; color: var(--cream); white-space: pre-wrap; }
 .ai-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; color: var(--amber); text-shadow: 2px 2px 0 var(--rust); margin-bottom: 4px; }
 .ai-sub { font-size: 12px; color: var(--dim); font-family: 'Courier Prime', monospace; }
 
@@ -838,6 +844,12 @@ window._time=60; window._sport=0; window._sore=false;
 // Groq
 let groqKey = localStorage.getItem('atlas_groq_key')||'';
 let chatHistory = [];
+// AI planner state
+window._aiEnergy = 3;
+window._aiBack = 'ok';
+window._aiShoulder = 'ok';
+window._aiTime = 60;
+window._aiEquip = new Set();
 
 // Weight log
 const WEIGHT_KEY = 'atlas_weight';
@@ -1119,50 +1131,146 @@ function genRec() {
 function renderAI() {
   const hasKey=!!groqKey;
   const pg=document.getElementById('page-ai');
+  const e=window._aiEnergy, b=window._aiBack, sh=window._aiShoulder, t=window._aiTime;
+  const eq=window._aiEquip;
+  const eChips=[1,2,3,4,5].map(n=>`<button class="chip ${e===n?'sel':''}" onclick="selAiChip('energy',this,${n})">${n}</button>`).join('');
+  const bChips=[{v:'ok',l:'正常'},{v:'mild',l:'少少唔舒服'},{v:'bad',l:'唔舒服'}].map(({v,l})=>`<button class="chip ${b===v?'sel':''}" onclick="selAiChip('back',this,'${v}')">${l}</button>`).join('');
+  const sChips=[{v:'ok',l:'正常'},{v:'mild',l:'少少唔舒服'},{v:'bad',l:'唔舒服'}].map(({v,l})=>`<button class="chip ${sh===v?'sel':''}" onclick="selAiChip('shoulder',this,'${v}')">${l}</button>`).join('');
+  const tChips=[30,45,60,90].map(n=>`<button class="chip ${t===n?'sel':''}" onclick="selAiChip('time',this,${n})">${n}分鐘</button>`).join('');
+  const eqChips=['Smith Machine','深蹲架','Cable','Bench','Dumbbell'].map(n=>`<button class="chip ${eq.has(n)?'sel':''}" onclick="togEquip(this,'${n}')">${n}</button>`).join('');
+
   pg.innerHTML=`<div class="ai-page">
     <div class="ai-header">
       <div class="deco-line"><span>A.I. COACH</span></div>
       <div class="ai-title">ATLAS<br><em>Intelligence</em></div>
-      <div class="ai-sub">// POWERED BY GROQ · 你嘅私人訓練教練</div>
+      <div class="ai-sub">// POWERED BY GROQ · 智能每日訓練計劃</div>
     </div>
 
-    <div class="api-setup card-fly">
-      <div class="api-setup-label">${hasKey?'// API KEY 已設定':'// GROQ API KEY 設定'}</div>
-      <div class="api-setup-desc">${hasKey?'AI Coach已啟動，你可以直接對話。如需更換Key請重新輸入。':'去 console.groq.com 攞免費API Key（唔需要信用卡），輸入後AI Coach即刻啟動。'}</div>
+    ${!hasKey?`<div class="api-setup card-fly">
+      <div class="api-setup-label">// GROQ API KEY 設定</div>
+      <div class="api-setup-desc">去 console.groq.com 攞免費API Key（唔需要信用卡），輸入後AI Coach即刻啟動。</div>
       <div class="api-input-wrap">
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="${hasKey?'輸入新Key更換...':'貼入你嘅Groq API Key...'}" value="">
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="貼入你嘅Groq API Key..." value="">
         <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
       </div>
-    </div>
-
-    <div class="ai-banner" style="margin:0 0 16px;cursor:default">
-      <div style="display:flex;align-items:center;margin-bottom:8px">
-        <span class="ai-status ${hasKey?'on':''}"></span>
-        <span style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:${hasKey?'#8fa840':'#c84820'}">${hasKey?'AI COACH ONLINE':'AI COACH OFFLINE'}</span>
+    </div>`:`<div class="api-setup card-fly" style="padding:10px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:var(--olive)">✓ AI COACH ONLINE</span>
+        <button onclick="document.getElementById('keyWrap').style.display='block';this.style.display='none'" style="background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:'Courier Prime',monospace">換Key</button>
       </div>
-      <div style="font-size:12px;color:var(--dim);font-family:'Courier Prime',monospace;line-height:1.6">
-        ${hasKey?'直接用廣東話或英文同AI傾，佢知道你嘅完整訓練計劃、膊頭手術歷史、腰背問題同運動目標。':'輸入API Key後啟動AI Coach。'}
+      <div id="keyWrap" style="display:none;margin-top:10px">
+        <div class="api-input-wrap">
+          <input class="api-input" type="password" id="apiKeyInput" placeholder="輸入新Key..." value="">
+          <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
+        </div>
       </div>
+    </div>`}
+
+    <div class="plan-checkin card-fly" style="animation-delay:0.05s">
+      <div class="api-setup-label">// 今日狀況 CHECK-IN</div>
+      <div class="plan-row"><div class="plan-row-label">整體精力</div><div class="chip-row">${eChips}</div></div>
+      <div class="plan-row"><div class="plan-row-label">下背</div><div class="chip-row">${bChips}</div></div>
+      <div class="plan-row"><div class="plan-row-label">右膊頭</div><div class="chip-row">${sChips}</div></div>
+      <div class="plan-row"><div class="plan-row-label">可用時間</div><div class="chip-row">${tChips}</div></div>
+      <div class="plan-row"><div class="plan-row-label">器材被佔用（可多選）</div><div class="chip-row">${eqChips}</div></div>
     </div>
 
-    <div class="quick-prompts">
-      <button class="qp" onclick="sendQuick('今日腰有少少唔舒服，幫我調整訓練')">腰唔舒服</button>
-      <button class="qp" onclick="sendQuick('我Bench Press停滯咗，點辦？')">突破停滯</button>
-      <button class="qp" onclick="sendQuick('我排球嘅彈跳力有冇進步？')">彈跳進展</button>
-      <button class="qp" onclick="sendQuick('今日好攰但想練，建議我做咩？')">今日計劃</button>
-      <button class="qp" onclick="sendQuick('我膊頭術後，而家做Bench Press要注意咩？')">膊頭注意</button>
-    </div>
+    <button class="gen-btn card-fly" style="animation-delay:0.1s;width:100%;margin-bottom:0" onclick="genDailyPlan()" ${!hasKey?'disabled':''}>
+      ${hasKey?'— AI 生成今日計劃 —':'請先設定 API Key'}
+    </button>
 
-    <div class="chat-msgs" id="chatMsgs">
-      ${hasKey?`<div class="msg msg-ai"><strong>// ATLAS A.I.</strong>你好！我係你嘅AI訓練教練。我知道你係41歲進階健身者，有膊頭手術歷史同下背痛，目標係減脂增肌同排球爆發力。有咩問題直接問我！</div>`
-      :`<div class="msg msg-ai"><strong>// ATLAS A.I.</strong>請先輸入Groq API Key啟動AI Coach。去 console.groq.com 可以免費攞到（唔需要信用卡）。</div>`}
-    </div>
+    <div id="aiPlanOut"></div>
 
-    <div class="chat-input-row">
-      <textarea class="chat-input" id="chatInput" placeholder="同AI教練傾..." rows="2"></textarea>
-      <button class="chat-send" onclick="sendChat()">▶</button>
-    </div>
+    ${hasKey?`<div class="plan-chat card-fly" style="animation-delay:0.15s">
+      <div class="api-setup-label">// 跟進問題</div>
+      <div class="chat-msgs" id="chatMsgs" style="max-height:220px;min-height:0"></div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" placeholder="問AI教練..." rows="2"></textarea>
+        <button class="chat-send" onclick="sendChat()">▶</button>
+      </div>
+    </div>`:''}
   </div>`;
+}
+
+function selAiChip(type,el,val){
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  if(type==='energy') window._aiEnergy=val;
+  if(type==='back') window._aiBack=val;
+  if(type==='shoulder') window._aiShoulder=val;
+  if(type==='time') window._aiTime=val;
+}
+function togEquip(el,name){
+  if(window._aiEquip.has(name)){window._aiEquip.delete(name);el.classList.remove('sel');}
+  else{window._aiEquip.add(name);el.classList.add('sel');}
+}
+
+async function genDailyPlan(){
+  if(!groqKey){toast('請先設定API Key');return;}
+  const todayIdx=(()=>{const m=[6,0,1,2,3,4,5];return m[new Date().getDay()]??0;})();
+  const day=DAYS[todayIdx];
+  const exerciseList=day.sections.map(sec=>`【${sec.label}】\n`+sec.exercises.map(ex=>`- ${ex.name}（${ex.sets}）${ex.warning?' ⚠'+ex.warning:''}`).join('\n')).join('\n\n');
+  const backTxt={ok:'正常',mild:'少少唔舒服',bad:'唔舒服'}[window._aiBack];
+  const shTxt={ok:'正常',mild:'少少唔舒服',bad:'唔舒服'}[window._aiShoulder];
+  const busyList=[...window._aiEquip];
+  const logSummary=buildLogSummary();
+
+  const userMsg=`今日係${day.name}，原定訓練：${day.title}
+
+今日狀況：
+- 整體精力：${window._aiEnergy}/5
+- 下背：${backTxt}
+- 右膊頭：${shTxt}
+- 可用時間：${window._aiTime}分鐘
+${busyList.length?`- 器材被佔用（唔得用）：${busyList.join('、')}\n`:''
+}原定今日訓練動作：
+${exerciseList}
+
+${logSummary}
+
+請根據以上狀況生成調整版今日訓練計劃。要求：
+1. 器材被佔用時提供替代動作
+2. 下背唔舒服：skip高脊椎壓力動作，加強核心穩定
+3. 膊頭唔舒服：減少overhead動作，確保旋轉肌熱身足夠
+4. 精力1-2減量30%，精力4-5可加強
+5. 時間不足：保留複合動作，跳過孤立動作
+6. 用廣東話，每個動作列出組數×次數同一句重點提示`;
+
+  const out=document.getElementById('aiPlanOut');
+  out.innerHTML=`<div class="rec-card" style="text-align:center;padding:30px 20px;margin-top:12px">
+    <div class="msg-typing" style="justify-content:center"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div style="margin-top:12px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim)">AI 生成中...</div>
+  </div>`;
+  out.scrollIntoView({behavior:'smooth'});
+
+  const systemPrompt=document.querySelector&&(()=>{
+    // reuse existing system prompt from sendChat context
+    return `你係一個專業健身教練AI，專門協助以下這位用家。回答時針對性，唔好問佢已提供過嘅資料。\n年齡41歲，身高181cm，體重86kg目標減脂，訓練經驗20年進階水平。右膊頭做過Rotator Cuff Repair手術已康復。腰椎間盤退化合併輕微突出，物理治療後改善，絕對避免傳統Deadlift同Heavy Back Squat。目標優先次序：減脂>增肌>力量>排球爆發力。`;
+  })();
+
+  try{
+    const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${groqKey}`},
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}],
+        max_tokens:800,temperature:0.7
+      })
+    });
+    const data=await response.json();
+    if(!response.ok) throw new Error(data.error?.message||`HTTP ${response.status}`);
+    const reply=data.choices?.[0]?.message?.content;
+    if(!reply) throw new Error('回應格式異常');
+    out.innerHTML=`<div class="rec-card" style="margin-top:12px">
+      <div class="rec-label">// AI 今日訓練計劃</div>
+      <div class="plan-out-text">${reply.replace(/</g,'&lt;')}</div>
+    </div>`;
+    out.scrollIntoView({behavior:'smooth'});
+    chatHistory=[{role:'user',content:userMsg},{role:'assistant',content:reply}];
+  }catch(e){
+    out.innerHTML=`<div class="rec-card" style="margin-top:12px"><div class="rec-note">連接出現問題：${e.message}</div></div>`;
+  }
 }
 
 function saveApiKey() {
