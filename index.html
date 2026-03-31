@@ -1287,7 +1287,7 @@ async function callAI(messages){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       contents,
-      generationConfig:{maxOutputTokens:500,temperature:0.7}
+      generationConfig:{maxOutputTokens:1500,temperature:0.7}
     })
   });
   const data=await res.json();
@@ -1540,7 +1540,8 @@ function renderDayContent() {
       const yq=encodeURIComponent(ex.ytSearch||ex.name);
       let yt='';
       if(ex.ytId) yt=`<div class="yt-wrap" id="yw_${k}">
-        <img class="yt-thumb" src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt="">
+        <img class="yt-thumb" src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt=""
+          onerror="this.parentElement.style.display='none'">
         <button class="yt-play" onclick="loadYT('${k}','${ex.ytId}')">
           <svg viewBox="0 0 24 24" style="fill:var(--amber);width:20px;height:20px;margin-left:4px"><path d="M8 5v14l11-7z"/></svg>
         </button>
