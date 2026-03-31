@@ -646,7 +646,18 @@ input[type=range]::-webkit-slider-thumb {
 <body>
 
 <div class="topbar">
-  <div class="logo">ATL<em>A</em>S</div>
+  <div class="logo" style="display:flex;align-items:center;gap:10px">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="17" stroke="#e8a030" stroke-width="1.5"/>
+      <circle cx="18" cy="18" r="11" stroke="#e8a030" stroke-width="1"/>
+      <ellipse cx="18" cy="18" rx="17" ry="6" stroke="#c84820" stroke-width="1" opacity="0.6"/>
+      <line x1="1" y1="18" x2="35" y2="18" stroke="#e8a030" stroke-width="1"/>
+      <line x1="18" y1="1" x2="18" y2="35" stroke="#e8a030" stroke-width="1"/>
+      <circle cx="18" cy="18" r="3" fill="#e8a030"/>
+      <path d="M18 8 L18 4 M18 32 L18 28 M8 18 L4 18 M32 18 L28 18" stroke="#c84820" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    ATL<em>A</em>S
+  </div>
   <div class="topbar-right">
     <button class="backup-btn" id="syncBtn" onclick="syncToSheets()" style="margin-right:4px">☁ 同步</button>
     <button class="backup-btn" onclick="openBackup()">⬆ BACKUP</button>
@@ -951,6 +962,16 @@ function renderCheckin() {
   document.getElementById('page-checkin').innerHTML=`
     <div class="ci-hero">
       <div class="ci-year">41</div>
+      <div style="position:absolute;right:16px;bottom:16px;opacity:0.15">
+        <svg width="60" height="60" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="17" stroke="#e8a030" stroke-width="1.5"/>
+          <circle cx="18" cy="18" r="11" stroke="#e8a030" stroke-width="1"/>
+          <ellipse cx="18" cy="18" rx="17" ry="6" stroke="#c84820" stroke-width="1"/>
+          <line x1="1" y1="18" x2="35" y2="18" stroke="#e8a030" stroke-width="1"/>
+          <line x1="18" y1="1" x2="18" y2="35" stroke="#e8a030" stroke-width="1"/>
+          <circle cx="18" cy="18" r="3" fill="#e8a030"/>
+        </svg>
+      </div>
       <div class="ci-bg"></div>
       <div class="ci-tag">// ${ds.toUpperCase()} · ATLAS TRAINING SYSTEM</div>
       <div class="ci-title">今日<br><em>狀態</em>點樣？</div>
@@ -1278,7 +1299,7 @@ ${logSummary}
   chatHistory.push({role:'user',parts:[{text:msg}]});
 
   try {
-    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -1370,7 +1391,16 @@ function renderDayContent() {
 
   let html=`
     <div class="masthead">
-      <div class="masthead-tag">// ${day.label} · ATLAS · PHASE 1</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="17" stroke="#e8a030" stroke-width="2"/>
+          <circle cx="18" cy="18" r="10" stroke="#e8a030" stroke-width="1.5"/>
+          <ellipse cx="18" cy="18" rx="17" ry="6" stroke="#c84820" stroke-width="1.5"/>
+          <line x1="1" y1="18" x2="35" y2="18" stroke="#e8a030" stroke-width="1.5"/>
+          <circle cx="18" cy="18" r="3" fill="#e8a030"/>
+        </svg>
+        <div class="masthead-tag" style="margin-bottom:0">// ${day.label} · ATLAS · PHASE 1</div>
+      </div>
       <div class="masthead-title">${day.title} <em>${day.em}</em></div>
       <div class="masthead-sub">${day.subtitle}</div>
     </div>
@@ -1407,10 +1437,13 @@ function renderDayContent() {
 
       const yq=encodeURIComponent(ex.ytSearch||ex.name);
       let yt='';
-      if(ex.ytId) yt=`<div class="yt-wrap" id="yw_${k}">
-        <img class="yt-thumb" src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt="">
-        <button class="yt-play" onclick="loadYT('${k}','${ex.ytId}')"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-      </div>`;
+      if(ex.ytId) yt=`<a href="https://www.youtube.com/watch?v=${ex.ytId}" target="_blank" style="display:block;position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin-bottom:10px;text-decoration:none">
+        <img src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;background:rgba(26,17,8,0.85);border:2px solid var(--amber);display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 24 24" style="fill:var(--amber);width:20px;height:20px;margin-left:4px"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:Courier Prime,monospace;font-size:10px;color:var(--cream);letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,0.8)">▶ 點擊開啟YouTube</div>
+      </a>`;
       yt+=`<a class="yt-link" href="https://www.youtube.com/results?search_query=${yq}" target="_blank"><span class="yt-ic">▶</span> YouTube搜尋「${ex.name}」教學</a>`;
 
       html+=`
@@ -1418,7 +1451,7 @@ function renderDayContent() {
           <div class="ex-main" onclick="toggleEx('${k}')">
             <div class="ex-num">${String(ei+1).padStart(2,'0')}</div>
             <div class="ex-body">
-              <div class="ex-name">${ex.name}</div>
+              <div class="ex-name">${getMuscleIcon(ex.tags)} ${ex.name}</div>
               <div class="ex-meta"><span class="ex-badge">${ex.sets}</span>${tags}</div>
             </div>
             <div class="ex-right">
@@ -1436,13 +1469,7 @@ function renderDayContent() {
             <div class="dpane ${tab==='yt'?'active':''}">${yt}</div>
             <div class="dpane ${tab==='alt'?'active':''}">${buildAlts(ex.name)}</div>
           </div>
-          <div class="log-panel ${isLog?'open':''}">
-            <div class="log-inputs">
-              <div class="log-iw"><label class="log-il">WEIGHT (KG)</label><input class="log-inp" type="number" id="w_${k}" value="${logData[k]?.weight||''}" placeholder="—"></div>
-              <div class="log-iw"><label class="log-il">REPS</label><input class="log-inp" type="number" id="r_${k}" value="${logData[k]?.reps||''}" placeholder="—"></div>
-            </div>
-            <button class="save-btn" onclick="saveExLog('${k}')">— RECORD SET —</button>
-          </div>
+          <div class="log-panel ${isLog?'open':''}">${buildSetLog(k, ex.sets)}</div>
         </div>`;
     });
   });
@@ -1455,6 +1482,59 @@ function renderDayContent() {
   </ul></div>`;
 
   tb.innerHTML=html;
+}
+
+function getMuscleIcon(tags) {
+  if (!tags || !tags.length) return '';
+  const icons = {
+    'chest': '🫁', 'back': '🏋️', 'legs': '🦵', 'core': '⚡',
+    'shoulder': '💪', 'arms': '💪', 'agility': '⚡', 'explosive': '🔥',
+    'shoulder-rehab': '🩺'
+  };
+  const tag = tags[0];
+  const icon = icons[tag] || '';
+  return `<span style="font-size:14px;margin-right:4px">${icon}</span>`;
+}
+
+function buildSetLog(k, sets) {
+  // Parse number of sets from sets string e.g. "4×4-6" -> 4
+  const match = sets.match(/^(\d+)/);
+  const numSets = match ? parseInt(match[1]) : 3;
+  const saved = logData[k]?.sets || [];
+  let html = '<div style="font-family:Courier Prime,monospace;font-size:9px;letter-spacing:2px;color:var(--amber);margin-bottom:10px">// 每組記錄</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat('+Math.min(numSets,4)+',1fr);gap:6px;margin-bottom:10px">';
+  for (let i=0; i<numSets; i++) {
+    const s = saved[i] || {};
+    html += `<div style="background:var(--bg3);border:1px solid var(--border2);padding:8px 6px;text-align:center">
+      <div style="font-size:8px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">SET ${i+1}</div>
+      <input type="number" placeholder="kg" value="${s.w||''}"
+        style="width:100%;background:transparent;border:none;outline:none;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--amber);text-align:center"
+        id="sw_${k}_${i}" onchange="saveSet('${k}',${i},'w',this.value)">
+      <div style="height:1px;background:var(--border);margin:4px 0"></div>
+      <input type="number" placeholder="reps" value="${s.r||''}"
+        style="width:100%;background:transparent;border:none;outline:none;font-family:'Courier Prime',monospace;font-size:12px;color:var(--cream2);text-align:center"
+        id="sr_${k}_${i}" onchange="saveSet('${k}',${i},'r',this.value)">
+    </div>`;
+  }
+  html += '</div>';
+  html += `<button onclick="markDone('${k}')" style="width:100%;background:var(--amber);border:none;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:var(--bg);cursor:pointer;box-shadow:2px 2px 0 var(--rust)">— MARK COMPLETE —</button>`;
+  return html;
+}
+
+function saveSet(k, i, field, val) {
+  if (!logData[k]) logData[k] = { done: false, sets: [] };
+  if (!logData[k].sets) logData[k].sets = [];
+  if (!logData[k].sets[i]) logData[k].sets[i] = {};
+  logData[k].sets[i][field] = val;
+  saveLog();
+}
+
+function markDone(k) {
+  if (!logData[k]) logData[k] = {};
+  logData[k].done = true;
+  saveLog();
+  toast('✓ COMPLETE!');
+  renderDayContent();
 }
 
 function buildAlts(name) {
