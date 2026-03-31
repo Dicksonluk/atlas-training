@@ -1267,14 +1267,17 @@ function renderAI() {
   }
 }
 
+let _cachedModel=null;
+
 async function callAI(messages){
-  // Auto-detect available model
-  const modelsRes=await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${groqKey}`);
-  const modelsData=await modelsRes.json();
-  if(!modelsRes.ok) throw new Error(modelsData.error?.message||`Auth error: HTTP ${modelsRes.status}`);
-  const available=(modelsData.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>m.name);
-  if(!available.length) throw new Error(`冇可用模型。可用列表：${JSON.stringify(modelsData).slice(0,200)}`);
-  const modelName=available.find(m=>m.includes('flash'))||available.find(m=>m.includes('pro'))||available[0];
+  if(!_cachedModel){
+    const modelsRes=await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${groqKey}`);
+    const modelsData=await modelsRes.json();
+    if(!modelsRes.ok) throw new Error(modelsData.error?.message||`Auth error: HTTP ${modelsRes.status}`);
+    const available=(modelsData.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>m.name);
+    if(!available.length) throw new Error('冇可用模型');
+    _cachedModel=available.find(m=>m.includes('flash'))||available.find(m=>m.includes('pro'))||available[0];
+  }
 
   const sysMsg=messages.find(m=>m.role==='system')?.content||'';
   const convo=messages.filter(m=>m.role!=='system').map(m=>({
@@ -1307,15 +1310,14 @@ async function continueAI(){
   msgs.innerHTML+=`<div class="msg msg-ai" id="${typingId}"><div class="msg-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
   msgs.scrollTop=msgs.scrollHeight;
   try{
-    chatHistory.push({role:'user',content:'請繼續'});
-    const result=await callAI([{role:'system',content:getSystemPrompt()},...chatHistory]);
+    const contHistory=[...chatHistory,{role:'user',content:'請繼續'}];
+    const result=await callAI([{role:'system',content:getSystemPrompt()},...contHistory]);
     const reply=result.text;
-    chatHistory[chatHistory.length-1]={role:'assistant',content:(chatHistory[chatHistory.length-2]?.content||'')+reply};
-    chatHistory.pop();
+    chatHistory.push({role:'assistant',content:reply});
     document.getElementById(typingId)?.remove();
     appendMsg('ai', reply);
     if(result.truncated) showContinueBtn();
-    else checkForPlan(chatHistory[chatHistory.length-1]?.content||'');
+    else checkForPlan(reply);
   }catch(e){
     document.getElementById(typingId)?.remove();
     appendMsg('ai',`連接出現問題：${e.message}`);
