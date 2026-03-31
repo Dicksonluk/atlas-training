@@ -1188,7 +1188,7 @@ function renderAI() {
     </div>
     ${!hasKey?`<div class="api-setup card-fly">
       <div class="api-setup-label">// API KEY 設定</div>
-      <div class="api-setup-desc">去 openrouter.ai 攞免費API Key，輸入後AI Coach即刻啟動。</div>
+      <div class="api-setup-desc">去 aistudio.google.com/apikey 攞免費API Key（AIza...），輸入後AI Coach即刻啟動。</div>
       <div class="api-input-wrap">
         <input class="api-input" type="password" id="apiKeyInput" placeholder="貼入API Key..." value="">
         <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
@@ -1224,32 +1224,20 @@ function renderAI() {
   }
 }
 
-const FREE_MODELS=[
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'mistralai/mistral-7b-instruct:free',
-  'microsoft/phi-4:free',
-  'nousresearch/hermes-3-llama-3.1-405b:free',
-];
-
 async function callAI(messages){
-  for(const model of FREE_MODELS){
-    try{
-      const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-        method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${groqKey}`},
-        body:JSON.stringify({model,messages,max_tokens:500,temperature:0.7})
-      });
-      const data=await res.json();
-      if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
-      const reply=data.choices?.[0]?.message?.content;
-      if(!reply) throw new Error('Empty response');
-      return reply;
-    }catch(e){
-      const msg=e.message||'';
-      if(msg.includes('No endpoints')||msg.includes('Provider returned error')||msg.includes('not found')) continue;
-      throw e;
-    }
+  try{
+    const res=await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${groqKey}`},
+      body:JSON.stringify({model:'gemini-2.0-flash',messages,max_tokens:500,temperature:0.7})
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
+    const reply=data.choices?.[0]?.message?.content;
+    if(!reply) throw new Error('Empty response');
+    return reply;
+  }catch(e){
+    throw e;
   }
-  throw new Error('所有免費模型暫時不可用，請稍後再試。');
 }
 
 async function autoStartAI(){
