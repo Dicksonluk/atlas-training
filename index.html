@@ -1442,9 +1442,11 @@ function appendMsg(role,text) {
 function buildLogSummary() {
   const entries=Object.entries(logData).filter(([,v])=>v.done);
   if(!entries.length) return '訓練記錄：暫時未有記錄';
-  let summary='最近訓練記錄：\n';
+  let summary='最近訓練記錄（最多10條）：\n';
   entries.slice(-10).forEach(([k,v])=>{
-    if(v.weight||v.reps) summary+=`- ${k}: ${v.weight||'?'}kg × ${v.reps||'?'}次\n`;
+    const setInfo=(v.sets||[]).filter(s=>s?.w||s?.r).map(s=>`${s.w||'?'}kg×${s.r||'?'}`).join(', ');
+    const note=v.actualNote?`（實際：${v.actualNote}）`:'';
+    if(setInfo||note) summary+=`- ${k}${note}: ${setInfo||'已完成'}\n`;
   });
   return summary;
 }
@@ -1666,11 +1668,17 @@ function getMuscleIcon(tags){
 }
 
 function buildSetLog(k, sets) {
-  // Parse number of sets from sets string e.g. "4×4-6" -> 4
   const match = sets.match(/^(\d+)/);
   const numSets = match ? parseInt(match[1]) : 3;
   const saved = logData[k]?.sets || [];
-  let html = '<div style="font-family:Courier Prime,monospace;font-size:9px;letter-spacing:2px;color:var(--amber);margin-bottom:10px">// 每組記錄</div>';
+  const savedNote = logData[k]?.actualNote||'';
+  let html = `<div style="margin-bottom:10px">
+    <div style="font-family:Courier Prime,monospace;font-size:9px;letter-spacing:2px;color:var(--amber);margin-bottom:6px">// 實際動作（如有替換請填寫）</div>
+    <input type="text" placeholder="例：用 Cable Row 代替、用 Smith Machine..." value="${savedNote}"
+      style="width:100%;background:var(--bg3);border:1px solid var(--border2);padding:8px 10px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:2px;box-sizing:border-box"
+      onchange="saveActualNote('${k}',this.value)">
+  </div>`;
+  html += '<div style="font-family:Courier Prime,monospace;font-size:9px;letter-spacing:2px;color:var(--amber);margin-bottom:10px">// 每組記錄</div>';
   html += '<div style="display:grid;grid-template-columns:repeat('+Math.min(numSets,4)+',1fr);gap:6px;margin-bottom:10px">';
   for (let i=0; i<numSets; i++) {
     const s = saved[i] || {};
@@ -1688,6 +1696,12 @@ function buildSetLog(k, sets) {
   html += '</div>';
   html += `<button onclick="markDone('${k}')" style="width:100%;background:var(--amber);border:none;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:var(--bg);cursor:pointer;box-shadow:2px 2px 0 var(--rust)">— MARK COMPLETE —</button>`;
   return html;
+}
+
+function saveActualNote(k, val) {
+  if (!logData[k]) logData[k] = { done: false, sets: [] };
+  logData[k].actualNote = val;
+  saveLog();
 }
 
 function saveSet(k, i, field, val) {
