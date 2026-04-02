@@ -901,7 +901,7 @@ const ALTS = {
 
 // Google Sheets sync
 let syncStatus = 'idle';
-async function syncToSheets() {
+async function syncToSheets(silent=false) {
   if (syncStatus==='syncing') return;
   syncStatus='syncing'; updateSyncBtn();
   try {
@@ -912,9 +912,10 @@ async function syncToSheets() {
     });
     syncStatus='success';
     localStorage.setItem('atlas_last_sync', new Date().toLocaleString('zh-HK'));
-    toast('\u2713 \u5df2\u540c\u6b65\u53bbGoogle Sheets\uff01');
+    if(!silent) toast('✓ 已同步去Google Sheets！');
   } catch(e) {
-    syncStatus='error'; toast('\u26a0 \u540c\u6b65\u5931\u6557\uff0c\u8a18\u9304\u5df2\u672c\u5730\u5132\u5b58');
+    syncStatus='error';
+    if(!silent) toast('⚠ 同步失敗，記錄已本地儲存');
   }
   updateSyncBtn();
   setTimeout(()=>{ syncStatus='idle'; updateSyncBtn(); }, 3000);
@@ -942,7 +943,12 @@ function updateSyncBtn() {
   btn.style.opacity=syncStatus==='syncing'?'0.6':'1';
 }
 
-function saveLog() { try { localStorage.setItem(LOG_KEY, JSON.stringify(logData)); } catch(e){} }
+function saveLog() {
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(logData)); } catch(e){}
+  // Auto-sync to Google Sheets (debounced, silent)
+  clearTimeout(window._autoSyncTimer);
+  window._autoSyncTimer=setTimeout(()=>{ if(syncStatus==='idle') syncToSheets(true); },3000);
+}
 function ek(d,s,e) { return `d${d}s${s}e${e}`; }
 function toast(m) {
   const t=document.getElementById('toast');
