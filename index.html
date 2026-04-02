@@ -858,6 +858,7 @@ const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwSlm6XXrpyVm6IklyRg
 let logData = {};
 try { logData = JSON.parse(localStorage.getItem(LOG_KEY)||'{}'); } catch(e){}
 let activeDay = (()=>{ const m=[6,0,1,2,3,4,5]; return m[new Date().getDay()]??0; })();
+let activeLogDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 const ui = {};
 let currentPage = 'checkin';
 let shareMode = false;
@@ -949,7 +950,20 @@ function saveLog() {
   clearTimeout(window._autoSyncTimer);
   window._autoSyncTimer=setTimeout(()=>{ if(syncStatus==='idle') syncToSheets(true); },3000);
 }
-function ek(d,s,e) { return `d${d}s${s}e${e}`; }
+function ek(d,s,e) { return `${activeLogDate}_d${d}_s${s}_e${e}`; }
+function ekOld(d,s,e) { return `d${d}s${s}e${e}`; } // backward compat
+
+function setLogDate(dateStr){
+  activeLogDate=dateStr;
+  const m=[6,0,1,2,3,4,5];
+  activeDay=m[new Date(dateStr+'T12:00:00').getDay()]??0;
+  renderTrain();
+}
+function shiftLogDate(n){
+  const d=new Date(activeLogDate+'T12:00:00');
+  d.setDate(d.getDate()+n);
+  setLogDate(d.toISOString().split('T')[0]);
+}
 function toast(m) {
   const t=document.getElementById('toast');
   t.textContent=m; t.classList.add('show');
@@ -1591,8 +1605,19 @@ function buildLogSummary() {
 // ── TRAIN ─────────────────────────────────────────────────────
 function renderTrain() {
   const pg=document.getElementById('page-train');
+  const isToday=activeLogDate===_todayDateStr;
+  const d=new Date(activeLogDate+'T12:00:00');
+  const dateLabel=d.toLocaleDateString('zh-HK',{month:'short',day:'numeric',weekday:'short'});
   pg.innerHTML=`
     <div class="strip-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px;border-bottom:1px solid var(--border)">
+        <button onclick="shiftLogDate(-1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:4px 10px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:2px">←</button>
+        <div style="text-align:center">
+          <div style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--amber);letter-spacing:1px">${dateLabel}</div>
+          ${!isToday?`<button onclick="setLogDate('${_todayDateStr}')" style="background:var(--rust);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:9px;padding:2px 8px;cursor:pointer;border-radius:2px;margin-top:2px">返回今日</button>`:''}
+        </div>
+        <button onclick="shiftLogDate(1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:4px 10px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:2px">→</button>
+      </div>
       <div class="day-strip">
         ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})">
           <div class="dp-l">${d.label}</div>
@@ -1672,7 +1697,7 @@ function renderDayContent() {
   }
 
   let total=0,done=0;
-  day.sections.forEach((s,si)=>s.exercises.forEach((_,ei)=>{total++;if(logData[ek(day.id,si,ei)]?.done)done++;}));
+  day.sections.forEach((s,si)=>s.exercises.forEach((_,ei)=>{total++;if(logData[ek(day.id,si,ei)]?.done||logData[ekOld(day.id,si,ei)]?.done)done++;}));
   const pct=total?done/total:0;
   const C=2*Math.PI*20; const off=C*(1-pct);
 
@@ -1716,7 +1741,7 @@ function renderDayContent() {
     html+=`<div class="sec-hdr"><span class="sec-icon" style="background:${secC}28;color:${secC}">${muscleSVG(secTag)}</span><div class="sec-lbl">${sec.label}</div><div class="sec-line"></div></div>`;
     sec.exercises.forEach((ex,ei)=>{
       const k=ek(day.id,si,ei);
-      const isDone=logData[k]?.done;
+      const isDone=logData[k]?.done || logData[ekOld(day.id,si,ei)]?.done;
       const isOpen=ui[k]; const tab=ui[k+'_t']||'tips'; const isLog=ui[k+'_l'];
       const firstTag=(ex.tags||[])[0]||'';
       const accentC=tagColor(firstTag);
@@ -1915,15 +1940,74 @@ function buildWeightChart() {
     </div>`;
 }
 
+// ── HISTORY LOG ───────────────────────────────────────────────
+function buildHistoryLog() {
+  // Collect all dates from logData keys
+  const dateMap = {}; // { 'YYYY-MM-DD': { done: n, total: n, dayIdx: n } }
+
+  Object.keys(logData).forEach(k => {
+    const newFmt = k.match(/^(\d{4}-\d{2}-\d{2})_d(\d+)_s\d+_e\d+$/);
+    if (newFmt) {
+      const date = newFmt[1];
+      const dayIdx = parseInt(newFmt[2]);
+      if (!dateMap[date]) dateMap[date] = { done: 0, total: 0, dayIdx };
+      dateMap[date].total++;
+      if (logData[k].done) dateMap[date].done++;
+    }
+    // Skip old-format keys (no date prefix) — no date info available
+  });
+
+  const dates = Object.keys(dateMap).sort((a, b) => b.localeCompare(a)); // newest first
+
+  if (!dates.length) {
+    return `<div style="color:var(--dim2);font-family:'Courier Prime',monospace;font-size:12px;text-align:center;padding:16px 0">
+      暫無日期記錄<br><span style="font-size:10px">開始訓練後會自動記錄</span>
+    </div>`;
+  }
+
+  return dates.map(date => {
+    const { done, total, dayIdx } = dateMap[date];
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
+    const d = new Date(date + 'T12:00:00');
+    const label = d.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric', weekday: 'short' });
+    const dayName = DAYS[dayIdx]?.title || `Day ${dayIdx}`;
+    const dayEm = DAYS[dayIdx]?.em || '';
+    const isToday = date === _todayDateStr;
+    const barColor = pct >= 80 ? '#8fa840' : pct >= 40 ? 'var(--amber)' : 'var(--dim2)';
+    return `<div onclick="setLogDate('${date}');showPage('train');"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:2px;background:var(--bg3);border-left:3px solid ${isToday ? 'var(--amber)' : 'var(--border2)'};cursor:pointer;transition:opacity 0.15s"
+      onmousedown="this.style.opacity='0.7'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-family:'Courier Prime',monospace;font-size:11px;color:${isToday ? 'var(--amber)' : 'var(--cream2)'};letter-spacing:1px">${label}${isToday ? ' · 今日' : ''}</span>
+          <span style="font-size:10px;color:var(--dim2);font-family:'Courier Prime',monospace">${dayName} ${dayEm}</span>
+        </div>
+        <div style="margin-top:5px;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${barColor};border-radius:2px;transition:width 0.3s"></div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:700;color:${barColor};font-family:'Barlow Condensed',sans-serif">${pct}%</div>
+        <div style="font-size:10px;color:var(--dim2);font-family:'Courier Prime',monospace">${done}/${total}</div>
+      </div>
+      <div style="color:var(--dim2);font-size:14px">›</div>
+    </div>`;
+  }).join('');
+}
+
 // ── PROGRESS ─────────────────────────────────────────────────
 function renderProgress() {
   const totalEx=DAYS.reduce((a,d)=>a+d.sections.reduce((b,s)=>b+s.exercises.length,0),0);
   const doneEx=Object.values(logData).filter(v=>v.done).length;
-  const daysDone=new Set(Object.keys(logData).map(k=>k.split('s')[0])).size;
+  // Count unique training dates (new format) + old format day-groups
+  const dateDays=new Set(Object.keys(logData).filter(k=>/^\d{4}-\d{2}-\d{2}_/.test(k)).map(k=>k.split('_')[0]));
+  const oldDays=new Set(Object.keys(logData).filter(k=>/^d\d+s/.test(k)).map(k=>k.match(/^(d\d+)/)[1]));
+  const daysDone=dateDays.size+oldDays.size;
 
   const bars=['M','T','W','T','F','S','S'].map((lbl,i)=>{
     const dt=DAYS[i]?.sections?.reduce((a,s)=>a+s.exercises.length,0)||1;
-    const dd=Object.keys(logData).filter(k=>k.startsWith(`d${i}s`)&&logData[k].done).length;
+    // Count done from both new and old key formats for this day index
+    const dd=Object.keys(logData).filter(k=>(k.match(/_d(\d+)_/)?.[1]==String(i)||k.startsWith(`d${i}s`))&&logData[k].done).length;
     const p=Math.min(dd/dt*100,100);
     return `<div class="wbar"><div class="wbar-wrap"><div class="wbar-fill" style="height:${p}%"></div></div><div class="wbar-lbl">${lbl}</div></div>`;
   }).join('');
@@ -1940,6 +2024,10 @@ function renderProgress() {
       <div class="stat-card card-fly" style="animation-delay:0.2s"><div class="stat-icon" style="background:rgba(200,72,32,0.15);color:var(--rust2)"><svg viewBox="0 0 16 16" width="16" height="16"><line x1="4" y1="2" x2="4" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 2 L13 5 L4 9 Z" fill="currentColor"/></svg></div><div class="stat-val">P.1</div><div class="stat-lbl">當前階段</div></div>
     </div>
     <div class="week-grid">${bars}</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
+      <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 訓練歷史記錄</div>
+      ${buildHistoryLog()}
+    </div>
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
       <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 體重記錄</div>
       ${buildWeightChart()}
