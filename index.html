@@ -325,6 +325,11 @@ input[type=range]::-webkit-slider-thumb {
 .ai-plan-banner { background:linear-gradient(135deg,rgba(232,160,48,0.12),rgba(200,72,32,0.08)); border:1px solid var(--amber); border-radius:4px; padding:14px 16px; margin-bottom:16px; }
 .ai-plan-banner-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .ai-plan-banner-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:900; color:var(--amber); }
+/* Check-in inline plan editor */
+.ci-ex-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:2px; background:var(--bg3); border-left:3px solid var(--amber); margin-bottom:6px; cursor:pointer; transition:opacity 0.2s; }
+.ci-ex-item.ci-ex-off { opacity:0.35; border-left-color:var(--dim2); }
+.ci-ex-chk { width:22px; height:22px; border-radius:2px; border:1px solid var(--amber); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--amber); flex-shrink:0; margin-top:2px; }
+.ci-ex-off .ci-ex-chk { border-color:var(--dim2); color:var(--dim2); }
 .ai-plan-ex { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:2px; background:rgba(0,0,0,0.25); border-left:3px solid var(--amber); margin-bottom:6px; transition:opacity 0.2s; }
 .ai-plan-ex.done { border-left-color:var(--olive); opacity:0.55; }
 .ai-plan-ex-body { flex:1; min-width:0; }
@@ -1064,14 +1069,15 @@ function renderCheckin() {
           <span style="font-family:'Courier Prime',monospace;font-size:12px;color:var(--dim)">KG</span>
         </div>
       </div>
-      <div style="display:flex;gap:10px;margin:0 0 20px" class="card-fly" style="animation-delay:0.28s">
-        <button class="gen-btn" style="flex:1;background:linear-gradient(135deg,rgba(232,160,48,0.2),rgba(200,72,32,0.15));border-color:var(--amber)" onclick="goToAI()">
-          <div style="font-size:11px;letter-spacing:1px">✦ AI 分析今日計劃</div>
+      <div style="display:flex;gap:10px;margin:0 0 8px" class="card-fly">
+        <button class="gen-btn" style="flex:2;background:linear-gradient(135deg,rgba(232,160,48,0.2),rgba(200,72,32,0.15));border-color:var(--amber)" onclick="generateCheckinPlan()">
+          <div style="font-size:11px;letter-spacing:1px">✦ AI 生成今日計劃</div>
         </button>
         <button class="gen-btn" style="flex:1;background:rgba(143,168,64,0.12);border-color:var(--olive)" onclick="goDirectTrain()">
-          <div style="font-size:11px;letter-spacing:1px">▶ 直接開始訓練</div>
+          <div style="font-size:11px;letter-spacing:1px">▶ 直接訓練</div>
         </button>
       </div>
+      <div id="ciPlanOut"></div>
       <div id="recOut"></div>
     </div>`;
 }
@@ -1101,6 +1107,110 @@ function setSore(v) {
 }
 function goDirectTrain() {
   saveWeightFromInput();
+  showPage('train');
+}
+
+const CI_PRESETS=[
+  {name:'膊頭康復Circuit',sets:'3×20',note:'Band ER + Pull-Apart + Face Pull，耐力模式，每次必做'},
+  {name:'核心Phase 1 Warm-up',sets:'完整組',note:'Dead Bug 3×8/邊 + Bird Dog 3×10/邊 + Glute Bridge 2×20'},
+  {name:'X型腿改善熱身',sets:'完整組',note:'Clamshell 3×15/邊 + Lateral Band Walk 2×15步/邊 + Piriformis Stretch'},
+  {name:'爆發力啟動',sets:'3×5',note:'Broad Jump或Box Jump，輕量爆發'},
+  {name:'打波前熱身',sets:'完整組',note:'動態伸展 + 跳繩1分鐘 + 上肢旋轉'},
+];
+
+async function generateCheckinPlan() {
+  saveWeightFromInput();
+  if(!groqKey){ toast('請先喺AI頁設定API Key'); showPage('ai'); return; }
+  const energy=parseInt(document.getElementById('eVal').textContent);
+  const t=window._time||60, s=window._sport||0, sore=window._sore||false;
+  const notes=document.getElementById('ciNotes')?.value?.trim()||'';
+  const todayIdx=(()=>{const m=[6,0,1,2,3,4,5];return m[new Date().getDay()]??0;})();
+  const day=DAYS[todayIdx];
+  const energyLabel=energy<=3?'好低':energy<=5?'一般':energy<=7?'不錯':'好高';
+  const timeLabel=t<=30?'30分鐘以內':t<=45?'約45分鐘':t<=60?'約1小時':'90分鐘以上';
+  const checkinMsg=`【今日Check-in — ${day.name} ${day.title}】精力：${energy}/10（${energyLabel}）、時間：${timeLabel}、今週打波：${s}日、狀態：${sore?'⚠有不適':'✓正常'}${notes?`、備注：${notes}`:''}。請根據呢個狀態同近期訓練記錄，直接提出今日具體訓練計劃（動作、組數、提示），唔需要問多餘問題。`;
+  const out=document.getElementById('ciPlanOut');
+  out.innerHTML=`<div class="ci-card" style="text-align:center;padding:20px"><div class="msg-typing" style="display:inline-flex;gap:4px"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="margin-top:10px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim)">AI分析緊...</div></div>`;
+  out.scrollIntoView({behavior:'smooth'});
+  try{
+    chatHistory=[];
+    const result=await callAI([{role:'system',content:getSystemPrompt()},{role:'user',content:checkinMsg}]);
+    const reply=result.text;
+    chatHistory=[{role:'user',content:checkinMsg},{role:'assistant',content:reply}];
+    const match=reply.match(/\[PLAN\]([\s\S]*?)\[\/PLAN\]/);
+    window._ciExercises=(match?match[1].trim().split('\n').filter(l=>l.trim()).map(line=>{
+      const p=line.split('|').map(s=>s.trim());
+      return {name:p[0],sets:p[1]||'',note:p[2]||'',included:true};
+    }).filter(e=>e.name&&e.name!=='動作名稱'&&!e.name.startsWith('---')):[]);
+    window._ciAIText=reply.replace(/\[PLAN\][\s\S]*?\[\/PLAN\]/,'').trim();
+    renderCiPlan();
+  }catch(e){
+    out.innerHTML=`<div class="ci-card" style="color:var(--rust);font-family:'Courier Prime',monospace;font-size:12px">連接出現問題：${e.message}</div>`;
+  }
+}
+
+function renderCiPlan(){
+  const out=document.getElementById('ciPlanOut');
+  const exs=window._ciExercises||[];
+  const aiText=(window._ciAIText||'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  const exRows=exs.map((ex,i)=>`<div class="ci-ex-item${ex.included?'':' ci-ex-off'}" onclick="toggleCiEx(${i})">
+    <div class="ci-ex-chk">${ex.included?'✓':'✗'}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:700;color:var(--cream)">${ex.name}</div>
+      ${ex.sets?`<div style="font-size:11px;color:var(--amber);font-family:'Courier Prime',monospace">${ex.sets}</div>`:''}
+      ${ex.note?`<div style="font-size:11px;color:var(--dim)">${ex.note}</div>`:''}
+    </div>
+  </div>`).join('');
+  const presetBtns=CI_PRESETS.map((p,i)=>`<button onclick="addCiPreset(${i})" style="background:rgba(232,160,48,0.08);border:1px solid var(--border2);color:var(--amber);font-family:'Courier Prime',monospace;font-size:10px;padding:5px 10px;cursor:pointer;border-radius:2px;white-space:nowrap">${p.name}</button>`).join('');
+  out.innerHTML=`<div class="ci-card card-fly">
+    ${aiText?`<div style="font-size:12px;color:var(--cream2);line-height:1.8;margin-bottom:14px;font-family:'Courier Prime',monospace">${aiText}</div>`:''}
+    <div class="ci-label" style="margin-bottom:8px">// 今日計劃 — 點擊開關動作</div>
+    <div id="ciExList">${exRows||'<div style="color:var(--dim);font-size:12px;font-family:Courier Prime,monospace">AI未有提出結構化計劃，可手動加入動作</div>'}</div>
+    <div style="margin-top:14px">
+      <div class="ci-label" style="margin-bottom:6px">// 快速加入</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${presetBtns}</div>
+      <div style="display:flex;gap:6px">
+        <input id="ciCustomEx" type="text" placeholder="自訂動作名稱..." style="flex:1;background:var(--bg3);border:1px solid var(--border2);padding:8px 10px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:2px">
+        <button onclick="addCiCustom()" style="background:var(--bg3);border:1px solid var(--amber);color:var(--amber);font-family:'Courier Prime',monospace;font-size:11px;padding:8px 12px;cursor:pointer;border-radius:2px">+ 加</button>
+      </div>
+    </div>
+    <button onclick="acceptInlinePlan()" style="width:100%;background:linear-gradient(135deg,var(--amber),var(--rust));border:none;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;color:var(--bg);cursor:pointer;border-radius:2px;margin-top:14px;box-shadow:2px 2px 0 rgba(0,0,0,0.3)">✓ 接受計劃 — 開始訓練</button>
+    <button onclick="showPage('ai')" style="width:100%;background:transparent;border:1px solid var(--border2);padding:9px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim);cursor:pointer;border-radius:2px;margin-top:6px">同 AI 繼續傾 →</button>
+  </div>`;
+  out.scrollIntoView({behavior:'smooth'});
+}
+
+function toggleCiEx(i){
+  if(!window._ciExercises) return;
+  window._ciExercises[i].included=!window._ciExercises[i].included;
+  renderCiPlan();
+}
+
+function addCiPreset(i){
+  if(!window._ciExercises) window._ciExercises=[];
+  const p=CI_PRESETS[i];
+  if(!window._ciExercises.find(e=>e.name===p.name)){
+    window._ciExercises.push({...p,included:true});
+    renderCiPlan();
+  } else { toast('已加咗呢個動作'); }
+}
+
+function addCiCustom(){
+  const input=document.getElementById('ciCustomEx');
+  const name=input?.value?.trim();
+  if(!name){toast('請輸入動作名稱');return;}
+  if(!window._ciExercises) window._ciExercises=[];
+  window._ciExercises.push({name,sets:'',note:'',included:true});
+  input.value='';
+  renderCiPlan();
+}
+
+function acceptInlinePlan(){
+  const exs=(window._ciExercises||[]).filter(e=>e.included).map(e=>({name:e.name,sets:e.sets,note:e.note,done:false}));
+  if(!exs.length){toast('請至少保留一個動作');return;}
+  aiPlan=exs;
+  localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
+  toast('✓ 今日計劃已儲存！');
   showPage('train');
 }
 
@@ -1267,14 +1377,12 @@ function renderAI() {
         <button class="api-save-btn" onclick="saveApiKey()">儲存</button>
       </div></div>
     </div>`}
-    ${hasPlan?`<div class="api-setup" style="padding:10px 16px;margin-bottom:12px;border-color:var(--olive)">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:2px;color:var(--olive)">✓ 今日計劃已接受</span>
-        <button onclick="showPage('train')" style="background:var(--olive);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:10px;padding:4px 10px;cursor:pointer;border-radius:2px">前往 TRAIN →</button>
-      </div>
+    ${hasPlan?`<div style="padding:6px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;background:rgba(107,122,48,0.12);border-radius:2px;border:1px solid rgba(107,122,48,0.4)">
+      <span style="font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:1px;color:var(--olive)">✓ 今日計劃已儲存</span>
+      <button onclick="showPage('train')" style="background:var(--olive);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:10px;padding:3px 8px;cursor:pointer;border-radius:2px">TRAIN →</button>
     </div>`:''}
-    <div class="chat-msgs" id="chatMsgs" style="min-height:180px;max-height:55vh"></div>
-    ${hasKey?`<div id="acceptWrap"></div>
+    <div class="chat-msgs" id="chatMsgs" style="flex:1;min-height:200px;max-height:calc(100vh - 340px);overflow-y:auto"></div>
+    ${hasKey?`<div id="acceptWrap" style="margin-top:6px"></div>
     <div class="chat-input-row" style="margin-top:8px">
       <textarea class="chat-input" id="chatInput" placeholder="同AI教練傾..." rows="2"></textarea>
       <button class="chat-send" onclick="sendChat()">▶</button>
