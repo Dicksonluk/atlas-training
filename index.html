@@ -857,8 +857,17 @@ const LOG_KEY = 'atlas_v4';
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwSlm6XXrpyVm6IklyRgMJm4OpG_uIgsLCbHxbu6IgjWUC0KhYpsFihyYds0P6V6_K_/exec';
 let logData = {};
 try { logData = JSON.parse(localStorage.getItem(LOG_KEY)||'{}'); } catch(e){}
-let activeDay = (()=>{ const m=[6,0,1,2,3,4,5]; return m[new Date().getDay()]??0; })();
+// Week plan: { 'YYYY-MM-DD': dayIdx }  (-1 = rest day)
+let weekPlan = {};
+try { weekPlan = JSON.parse(localStorage.getItem('atlas_weekplan')||'{}'); } catch(e){}
+function saveWeekPlan(){ localStorage.setItem('atlas_weekplan',JSON.stringify(weekPlan)); }
+function getDayForDate(dateStr){
+  if(weekPlan[dateStr]!==undefined) return weekPlan[dateStr];
+  const m=[6,0,1,2,3,4,5]; return m[new Date(dateStr+'T12:00:00').getDay()]??0;
+}
 let activeLogDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+let activeDay = getDayForDate(activeLogDate);
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 const ui = {};
 let currentPage = 'checkin';
 let shareMode = false;
@@ -955,8 +964,7 @@ function ekOld(d,s,e) { return `d${d}s${s}e${e}`; } // backward compat
 
 function setLogDate(dateStr){
   activeLogDate=dateStr;
-  const m=[6,0,1,2,3,4,5];
-  activeDay=m[new Date(dateStr+'T12:00:00').getDay()]??0;
+  activeDay=getDayForDate(dateStr);
   renderTrain();
 }
 function shiftLogDate(n){
@@ -2067,6 +2075,126 @@ function buildHistoryLog() {
   }).join('');
 }
 
+// ── CALENDAR ─────────────────────────────────────────────────
+function shiftCal(n){
+  calMonth+=n;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  renderProgress();
+}
+function buildCalendar(){
+  const firstDow=new Date(calYear,calMonth,1).getDay(); // 0=Sun
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const firstMon=(firstDow+6)%7; // Mon=0
+  const monthLabel=new Date(calYear,calMonth).toLocaleDateString('zh-HK',{year:'numeric',month:'long'});
+
+  // Pre-compute logged dates for this month
+  const prefix=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const loggedDates={};
+  Object.keys(logData).forEach(k=>{
+    const m=k.match(/^(\d{4}-\d{2}-\d{2})_/);
+    if(m&&m[1].startsWith(prefix)){
+      if(!loggedDates[m[1]])loggedDates[m[1]]={done:0,total:0};
+      loggedDates[m[1]].total++;
+      if(logData[k].done)loggedDates[m[1]].done++;
+    }
+  });
+
+  const weekLabels=['一','二','三','四','五','六','日'].map(l=>
+    `<div style="text-align:center;font-size:9px;color:var(--dim2);font-family:'Courier Prime',monospace;padding:3px 0">${l}</div>`
+  ).join('');
+
+  let cells='';
+  for(let i=0;i<firstMon;i++) cells+=`<div></div>`;
+  for(let day=1;day<=daysInMonth;day++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday=ds===_todayDateStr;
+    const log=loggedDates[ds];
+    const planned=weekPlan[ds]!==undefined;
+    const pct=log?log.done/log.total:0;
+    const dotC=pct>=0.8?'#8fa840':pct>=0.4?'var(--amber)':'var(--rust2)';
+    const hasAny=log||planned;
+    cells+=`<div onclick="${hasAny?`setLogDate('${ds}');showPage('train')`:'void 0'}"
+      style="text-align:center;padding:3px 1px;cursor:${hasAny?'pointer':'default'}">
+      <div style="width:26px;height:26px;line-height:26px;margin:0 auto;border-radius:50%;
+        background:${isToday?'var(--amber)':'transparent'};
+        border:${!isToday&&log?'1px solid var(--border2)':planned&&!log?'1px dashed var(--border)':'none'};
+        font-size:12px;font-family:'Barlow Condensed',sans-serif;
+        color:${isToday?'var(--bg)':log?'var(--cream)':'var(--dim2)'}">
+        ${day}
+      </div>
+      ${log?`<div style="width:5px;height:5px;border-radius:50%;background:${dotC};margin:1px auto 0"></div>`:'<div style="height:6px"></div>'}
+    </div>`;
+  }
+
+  return `<div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <button onclick="shiftCal(-1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:4px 12px;font-family:'Courier Prime',monospace;cursor:pointer;border-radius:2px">←</button>
+      <div style="font-family:'Courier Prime',monospace;font-size:12px;color:var(--cream);letter-spacing:1px">${monthLabel}</div>
+      <button onclick="shiftCal(1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:4px 12px;font-family:'Courier Prime',monospace;cursor:pointer;border-radius:2px">→</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px">${weekLabels}${cells}</div>
+    <div style="display:flex;gap:12px;margin-top:8px;font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2)">
+      <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#8fa840;margin-right:3px;vertical-align:middle"></span>≥80%</span>
+      <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:3px;vertical-align:middle"></span>部分</span>
+      <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rust2);margin-right:3px;vertical-align:middle"></span>少量</span>
+      <span><span style="display:inline-block;width:12px;height:1px;border-top:1px dashed var(--border);margin-right:3px;vertical-align:middle;display:inline-block"></span>計劃中</span>
+    </div>
+  </div>`;
+}
+
+// ── WEEKLY PLANNER ────────────────────────────────────────────
+function buildWeekPlanner(){
+  // Get Mon of current week
+  const today=new Date(_todayDateStr+'T12:00:00');
+  const dow=today.getDay();
+  const mondayOffset=dow===0?-6:1-dow;
+  const monday=new Date(today);
+  monday.setDate(today.getDate()+mondayOffset);
+
+  const weekDays=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(monday);
+    d.setDate(monday.getDate()+i);
+    weekDays.push(d.toISOString().split('T')[0]);
+  }
+  const dayLabels=['週一','週二','週三','週四','週五','週六','週日'];
+  const opts=[
+    `<option value="-1">— 休息 —</option>`,
+    ...DAYS.map((d,i)=>`<option value="${i}">${d.title} ${d.em} (${d.label})</option>`)
+  ].join('');
+
+  const rows=weekDays.map((ds,wi)=>{
+    const cur=getDayForDate(ds);
+    const isToday=ds===_todayDateStr;
+    const d=new Date(ds+'T12:00:00');
+    const log=Object.keys(logData).some(k=>k.startsWith(ds+'_')&&logData[k].done);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);${isToday?'background:rgba(232,160,48,0.05);margin:0 -16px;padding:8px 16px':''}">
+      <div style="width:40px;flex-shrink:0;text-align:center">
+        <div style="font-size:9px;color:${isToday?'var(--amber)':'var(--dim2)'};font-family:'Courier Prime',monospace">${dayLabels[wi]}</div>
+        <div style="font-size:16px;font-weight:700;color:${isToday?'var(--amber)':'var(--cream2)'};font-family:'Barlow Condensed',sans-serif">${d.getDate()}</div>
+        ${log?`<div style="font-size:8px;color:#8fa840;font-family:'Courier Prime',monospace">✓完成</div>`:''}
+      </div>
+      <select onchange="setWeekDay('${ds}',parseInt(this.value))"
+        style="flex:1;background:var(--bg3);border:1px solid ${isToday?'var(--amber)':'var(--border2)'};color:var(--cream);font-family:'Courier Prime',monospace;font-size:11px;padding:7px 8px;outline:none;border-radius:2px;cursor:pointer">
+        ${opts.replace(`value="${cur}"`,`value="${cur}" selected`)}
+      </select>
+    </div>`;
+  }).join('');
+
+  return `<div>${rows}
+    <div style="margin-top:10px;font-size:10px;color:var(--dim2);font-family:'Courier Prime',monospace">// 改完之後去TRAIN嗰日會自動跟此計劃，唔再強制跟星期</div>
+  </div>`;
+}
+
+function setWeekDay(dateStr,dayIdx){
+  if(dayIdx===-1) delete weekPlan[dateStr];
+  else weekPlan[dateStr]=dayIdx;
+  saveWeekPlan();
+  if(activeLogDate===dateStr){ activeDay=dayIdx>=0?dayIdx:getDayForDate(dateStr); if(currentPage==='train') renderTrain(); }
+  renderProgress();
+}
+
 // ── PROGRESS ─────────────────────────────────────────────────
 function renderProgress() {
   const totalEx=DAYS.reduce((a,d)=>a+d.sections.reduce((b,s)=>b+s.exercises.length,0),0);
@@ -2096,6 +2224,14 @@ function renderProgress() {
       <div class="stat-card card-fly" style="animation-delay:0.2s"><div class="stat-icon" style="background:rgba(200,72,32,0.15);color:var(--rust2)"><svg viewBox="0 0 16 16" width="16" height="16"><line x1="4" y1="2" x2="4" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 2 L13 5 L4 9 Z" fill="currentColor"/></svg></div><div class="stat-val">P.1</div><div class="stat-lbl">當前階段</div></div>
     </div>
     <div class="week-grid">${bars}</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
+      <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 月曆 · 訓練記錄</div>
+      ${buildCalendar()}
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
+      <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 本週訓練計劃</div>
+      ${buildWeekPlanner()}
+    </div>
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
       <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 訓練歷史記錄</div>
       ${buildHistoryLog()}
