@@ -712,7 +712,6 @@ input[type=range]::-webkit-slider-thumb {
 .modal-btn-o { width:100%; background:transparent; border:1px solid var(--border2); border-radius: var(--r-btn); padding:14px; font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:3px; color:var(--cream2); cursor:pointer; margin-bottom:16px; }
 .modal-close { width:100%; background:transparent; border:none; color:var(--dim); font-size:13px; cursor:pointer; padding:8px; font-family:'Courier Prime',monospace; letter-spacing:2px; }
 
-/* TOAST */
 .toast {
   position:fixed; bottom:calc(var(--nav-h)+16px); left:50%;
   transform:translateX(-50%) translateY(10px);
@@ -721,11 +720,79 @@ input[type=range]::-webkit-slider-thumb {
   font-size:14px; font-weight:700; letter-spacing:2px;
   opacity:0; transition:all 0.3s; pointer-events:none;
   z-index:600; white-space:nowrap;
-  box-shadow:3px 3px 0 var(--rust);
+  border-radius: var(--r-btn);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── LIGHT THEME (Falcone) ───────────────────────────────────── */
+[data-theme="light"] {
+  --bg:      #ede4cc;
+  --bg2:     #e4d8b8;
+  --bg3:     #d8c89c;
+  --border:  #bca070;
+  --border2: #9a7848;
+  --cream:   #231408;
+  --cream2:  #332010;
+  --amber:   #b86808;
+  --amber2:  #d08018;
+  --rust:    #982010;
+  --rust2:   #b83020;
+  --gold:    #9a5808;
+  --gold2:   #b07010;
+  --olive:   #485820;
+  --dim:     #6a4828;
+  --dim2:    #8a6840;
+  --warm-white: #231408;
+}
+[data-theme="light"] body { background: var(--bg); color: var(--cream); }
+[data-theme="light"] body::before { opacity: 0.015; }
+[data-theme="light"] body::after {
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.01) 2px, rgba(0,0,0,0.01) 4px);
+}
+[data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #e0d4b0 0%, var(--bg2) 100%);
+  border-bottom-color: rgba(184,104,8,0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+[data-theme="light"] .nav {
+  background: linear-gradient(0deg, #e0d4b0 0%, var(--bg2) 100%);
+  border-top-color: rgba(184,104,8,0.2);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+}
+[data-theme="light"] .ci-hero {
+  background: linear-gradient(160deg, #d8c898 0%, #ede4cc 100%);
+  border-bottom-color: rgba(184,104,8,0.2);
+}
+[data-theme="light"] .ci-hero-bg {
+  background:
+    radial-gradient(ellipse 120px 160px at 88% 50%, rgba(184,104,8,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 80px 100px at 80% 90%, rgba(152,32,16,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60px 80px at 95% 20%, rgba(72,88,32,0.06) 0%, transparent 60%);
+}
+[data-theme="light"] .wu-strip {
+  background: linear-gradient(135deg, #c8dcc0, #c0d4b8);
+  color: #3a5820; border-color: rgba(72,88,32,0.4);
+}
+[data-theme="light"] .wu-strip strong { color: #485820; }
+[data-theme="light"] .modal-ov { background: rgba(180,160,110,0.95); }
+[data-theme="light"] .ex-card {
+  background: linear-gradient(160deg, var(--bg2) 0%, rgba(212,196,152,0.9) 100%);
+  box-shadow: 0 3px 14px rgba(0,0,0,0.12);
+}
+[data-theme="light"] .ring-fill { stroke: var(--amber); }
+[data-theme="light"] .ring-bg { stroke: var(--border); }
+/* Wood stripe texture on bg2 surfaces in light mode */
+[data-theme="light"] .topbar,
+[data-theme="light"] .nav,
+[data-theme="light"] .strip-wrap {
+  background-image: repeating-linear-gradient(
+    90deg, transparent, transparent 18px,
+    rgba(0,0,0,0.025) 18px, rgba(0,0,0,0.025) 19px
+  );
+}
 </style>
 </head>
 <body>
@@ -746,6 +813,7 @@ input[type=range]::-webkit-slider-thumb {
   <div class="topbar-right">
     <button class="backup-btn" id="syncBtn" onclick="syncToSheets()" style="margin-right:4px">☁ 同步</button>
     <button class="backup-btn" onclick="openBackup()">⬆ BACKUP</button>
+    <button id="themeBtn" onclick="toggleTheme()" style="background:transparent;border:none;font-size:18px;cursor:pointer;padding:4px 6px;line-height:1;opacity:0.8" title="切換日/夜">🌙</button>
     <div class="topbar-info" id="topInfo">41歲 · 進階<br>⚠ 下背注意</div>
   </div>
 </div>
@@ -781,6 +849,25 @@ input[type=range]::-webkit-slider-thumb {
 <div class="toast" id="toast"></div>
 
 <script>
+// ── THEME ─────────────────────────────────────────────────
+(function(){
+  const t=localStorage.getItem('atlas_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  // btn icon updated after DOM ready
+})();
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme')||'dark';
+  const next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('atlas_theme',next);
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=next==='dark'?'🌙':'☀️';
+}
+function initThemeBtn(){
+  const btn=document.getElementById('themeBtn');
+  if(btn){ const t=document.documentElement.getAttribute('data-theme')||'dark'; btn.textContent=t==='dark'?'🌙':'☀️'; }
+}
+
 // ── TRAINING DATA ─────────────────────────────────────────
 const DAYS = [
   { id:0, name:'MON', label:'週一', type:'gym', title:'PUSH', em:'ONE', subtitle:'重胸 · 膊頭穩定 · 三頭',
@@ -2325,6 +2412,7 @@ function renderProgress() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+initThemeBtn();
 renderCheckin();
 </script>
 </body>
