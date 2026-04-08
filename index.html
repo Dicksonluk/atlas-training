@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#140d04">
 <title>ATLAS — Training System</title>
 <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22ATLAS%20Training%20System%22%2C%22short_name%22%3A%22ATLAS%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23140d04%22%2C%22theme_color%22%3A%22%23f0a830%22%2C%22orientation%22%3A%22portrait%22%7D">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.29.0/dist/tabler-icons.min.css">
 <!-- Apple touch icon (SVG → base64 embedded) -->
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23140d04'/%3E%3Ccircle cx='90' cy='90' r='72' stroke='%23f0a830' stroke-width='4' fill='none'/%3E%3Ccircle cx='90' cy='90' r='46' stroke='%23f0a830' stroke-width='2.5' fill='none'/%3E%3Cellipse cx='90' cy='90' rx='72' ry='26' stroke='%23c84820' stroke-width='2.5' fill='none' opacity='0.7'/%3E%3Cline x1='18' y1='90' x2='162' y2='90' stroke='%23f0a830' stroke-width='2.5'/%3E%3Ccircle cx='90' cy='90' r='10' fill='%23f0a830'/%3E%3Ctext x='90' y='148' font-family='serif' font-size='22' font-weight='900' fill='%23f0a830' text-anchor='middle' letter-spacing='8'%3EATLAS%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
@@ -148,6 +149,33 @@ body::after {
 }
 .nav-item.active .nav-svg { color: var(--bg); }
 .nav-icon { font-size: 22px; line-height: 1; }
+.nav-icon-ti { font-size: 22px; line-height: 1; display: block; margin: 0 auto 2px; }
+
+/* TRAINING TYPE SELECTOR */
+.train-selector { padding: 16px; }
+.train-selector-hdr { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px; color:var(--amber); margin-bottom:14px; }
+.train-type-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.train-type-card {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border: 1px solid var(--border2);
+  border-radius: var(--r-card); padding: 16px 14px;
+  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  text-align: left;
+}
+.train-type-card:active { transform: scale(0.96); }
+.train-type-card.recommended { border-color: var(--amber); box-shadow: 0 4px 18px rgba(240,168,48,0.2); }
+.train-type-card.recommended::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--amber),var(--gold)); border-radius:var(--r-card) var(--r-card) 0 0; }
+.train-type-card.done-today { border-color: rgba(107,122,48,0.6); }
+.ttc-icon { font-size:32px; margin-bottom:8px; display:block; }
+.ttc-name { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); line-height:1; }
+.ttc-sub { font-size:10px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:3px; letter-spacing:0.5px; }
+.ttc-badge { position:absolute; top:10px; right:10px; font-size:9px; font-family:'Courier Prime',monospace; padding:2px 8px; border-radius:var(--r-btn); }
+.ttc-badge.fresh { background:rgba(107,122,48,0.2); color:#8fa840; border:1px solid rgba(107,122,48,0.3); }
+.ttc-badge.recent { background:rgba(240,168,48,0.12); color:var(--amber); border:1px solid rgba(240,168,48,0.25); }
+.ttc-badge.done { background:rgba(200,72,32,0.12); color:var(--rust2); border:1px solid rgba(200,72,32,0.25); }
+.train-ai-box { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r-card); padding:14px 16px; margin-bottom:12px; min-height:50px; }
+.train-ai-thinking { display:flex; gap:5px; align-items:center; }
 
 /* PAGES */
 .page {
@@ -831,10 +859,10 @@ input[type=range]::-webkit-slider-thumb {
 <div class="page" id="page-progress"></div>
 
 <nav class="nav">
-  <button class="nav-item active" onclick="showPage('checkin')"><svg class="nav-svg" viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="6.5" stroke="currentColor" fill="none" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" fill="currentColor"/><line x1="10" y1="2" x2="10" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="15" x2="10" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>TODAY</button>
-  <button class="nav-item" onclick="showPage('ai')"><svg class="nav-svg" viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="4" r="2" fill="currentColor"/><circle cx="3" cy="11" r="2" fill="currentColor"/><circle cx="17" cy="11" r="2" fill="currentColor"/><circle cx="7" cy="17" r="2" fill="currentColor"/><circle cx="13" cy="17" r="2" fill="currentColor"/><line x1="10" y1="6" x2="3" y2="9" stroke="currentColor" stroke-width="1" opacity="0.7"/><line x1="10" y1="6" x2="17" y2="9" stroke="currentColor" stroke-width="1" opacity="0.7"/><line x1="3" y1="13" x2="7" y2="15" stroke="currentColor" stroke-width="1" opacity="0.7"/><line x1="17" y1="13" x2="13" y2="15" stroke="currentColor" stroke-width="1" opacity="0.7"/><line x1="3" y1="13" x2="13" y2="15" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg>A.I.</button>
-  <button class="nav-item" onclick="showPage('train')"><svg class="nav-svg" viewBox="0 0 20 20" width="18" height="18"><rect x="1" y="7.5" width="4" height="5" rx="1" fill="currentColor"/><rect x="15" y="7.5" width="4" height="5" rx="1" fill="currentColor"/><rect x="4" y="9" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.7"/><rect x="13" y="9" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.7"/><line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>TRAIN</button>
-  <button class="nav-item" onclick="showPage('progress')"><svg class="nav-svg" viewBox="0 0 20 20" width="18" height="18"><rect x="2" y="13" width="4" height="5" rx="1" fill="currentColor" opacity="0.5"/><rect x="8" y="9" width="4" height="9" rx="1" fill="currentColor" opacity="0.75"/><rect x="14" y="4" width="4" height="14" rx="1" fill="currentColor"/><line x1="1" y1="18" x2="19" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>PROGRESS</button>
+  <button class="nav-item active" onclick="showPage('checkin')"><i class="ti ti-sun nav-icon-ti"></i>TODAY</button>
+  <button class="nav-item" onclick="showPage('ai')"><i class="ti ti-brain nav-icon-ti"></i>A.I.</button>
+  <button class="nav-item" onclick="showPage('train')"><i class="ti ti-barbell nav-icon-ti"></i>TRAIN</button>
+  <button class="nav-item" onclick="showPage('progress')"><i class="ti ti-chart-bar nav-icon-ti"></i>PROGRESS</button>
 </nav>
 
 <!-- BACKUP MODAL -->
@@ -1121,6 +1149,7 @@ function ekOld(d,s,e) { return `d${d}s${s}e${e}`; } // backward compat
 function setLogDate(dateStr){
   activeLogDate=dateStr;
   activeDay=getDayForDate(dateStr);
+  ui.trainSelector=true; // show selector for new date
   renderTrain();
 }
 function shiftLogDate(n){
@@ -1183,7 +1212,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item')[['checkin','ai','train','progress'].indexOf(name)].classList.add('active');
   if(name==='checkin') renderCheckin();
   if(name==='ai') renderAI();
-  if(name==='train') renderTrain();
+  if(name==='train'){ if(ui.trainSelector===undefined) ui.trainSelector=true; renderTrain(); }
   if(name==='progress') renderProgress();
 }
 
@@ -1783,37 +1812,143 @@ function buildLogSummary() {
 }
 
 // ── TRAIN ─────────────────────────────────────────────────────
+const DAY_ICONS = ['🏋️','🔙','🦵','⚡','🏋️','🏐','😴'];
+const DAY_TI    = ['ti-barbell','ti-arrow-back-up','ti-run','ti-bolt','ti-barbell','ti-ball-volleyball','ti-moon'];
+
+function daysSinceLastLog(dayIdx){
+  const dates=Object.keys(logData)
+    .filter(k=>k.match(new RegExp(`_d${dayIdx}_`)))
+    .map(k=>k.split('_')[0])
+    .filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
+  if(!dates.length) return null;
+  const latest=dates.sort().pop();
+  const diff=Math.round((new Date(_todayDateStr+'T12:00:00')-new Date(latest+'T12:00:00'))/86400000);
+  return diff;
+}
+
 function renderTrain() {
   const pg=document.getElementById('page-train');
   const isToday=activeLogDate===_todayDateStr;
   const d=new Date(activeLogDate+'T12:00:00');
   const dateLabel=d.toLocaleDateString('zh-HK',{month:'short',day:'numeric',weekday:'short'});
-  pg.innerHTML=`
-    <div class="strip-wrap">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px;border-bottom:1px solid var(--border)">
-        <button onclick="shiftLogDate(-1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:4px 10px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:2px">←</button>
-        <div style="text-align:center">
-          <div style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--amber);letter-spacing:1px">${dateLabel}</div>
-          ${!isToday?`<button onclick="setLogDate('${_todayDateStr}')" style="background:var(--rust);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:9px;padding:2px 8px;cursor:pointer;border-radius:2px;margin-top:2px">返回今日</button>`:''}
-        </div>
-        <button onclick="shiftLogDate(1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:4px 10px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:2px">→</button>
-      </div>
-      <div class="day-strip">
-        ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})">
-          <div class="dp-l">${d.label}</div>
-          <div class="dp-n">${d.name}</div>
-        </div>`).join('')}
-      </div>
+  const showSelector = ui.trainSelector !== false;
+
+  const dateBar=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
+    <button onclick="shiftLogDate(-1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:6px 14px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:var(--r-btn)">←</button>
+    <div style="text-align:center">
+      <div style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--amber);letter-spacing:1px">${dateLabel}</div>
+      ${!isToday?`<button onclick="setLogDate('${_todayDateStr}')" style="background:var(--rust);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:9px;padding:2px 10px;cursor:pointer;border-radius:var(--r-btn);margin-top:3px">返回今日</button>`:''}
     </div>
-    <div class="train-body" id="trainBody"></div>`;
-  renderDayContent();
+    <button onclick="shiftLogDate(1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:6px 14px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:var(--r-btn)">→</button>
+  </div>`;
+
+  if(showSelector){
+    // Training type selector view
+    const cards=DAYS.map((day,i)=>{
+      const ago=daysSinceLastLog(i);
+      let badgeHtml='', cardClass='train-type-card';
+      if(ago===0){ badgeHtml=`<span class="ttc-badge done">今日已做</span>`; cardClass+=' done-today'; }
+      else if(ago===null){ badgeHtml=`<span class="ttc-badge fresh">未試過</span>`; }
+      else if(ago>=3){ badgeHtml=`<span class="ttc-badge fresh">${ago}日前</span>`; cardClass+=' recommended'; }
+      else { badgeHtml=`<span class="ttc-badge recent">${ago}日前</span>`; }
+
+      return `<div class="${cardClass}" onclick="selectTrainingType(${i})">
+        ${badgeHtml}
+        <i class="ti ${DAY_TI[i]} ttc-icon" style="color:var(--amber)"></i>
+        <div class="ttc-name">${day.title} <em style="color:var(--amber);font-style:italic">${day.em||''}</em></div>
+        <div class="ttc-sub">${day.subtitle}</div>
+      </div>`;
+    }).join('');
+
+    pg.innerHTML=`${dateBar}
+      <div class="train-selector">
+        <div class="train-selector-hdr">// 選擇今日訓練類型</div>
+        <div id="trainAiBox" class="train-ai-box" style="margin-bottom:14px">
+          <div style="font-size:12px;color:var(--dim);font-family:'Courier Prime',monospace">
+            <i class="ti ti-info-circle" style="color:var(--amber);margin-right:6px"></i>
+            選擇訓練類型，AI會即時評估係咪適合今日
+          </div>
+        </div>
+        <div class="train-type-grid">${cards}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px;margin-bottom:6px">// 快速選擇</div>
+            <div class="day-strip" style="padding-bottom:0">
+              ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})" style="font-size:11px">
+                <div class="dp-l">${d.label}</div><div class="dp-n">${d.name}</div>
+              </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    pg.innerHTML=`${dateBar}
+      <div class="strip-wrap">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px">
+          <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px">
+            <i class="ti ti-switch-3" style="margin-right:4px"></i>更換訓練
+          </button>
+          <div class="day-strip" style="flex:1;padding-bottom:0">
+            ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})">
+              <div class="dp-l">${d.label}</div><div class="dp-n">${d.name}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="train-body" id="trainBody"></div>`;
+    renderDayContent();
+  }
+}
+
+async function selectTrainingType(dayIdx){
+  activeDay=dayIdx;
+  ui.trainSelector=false;
+
+  // Show quick AI eval in the box before switching
+  const box=document.getElementById('trainAiBox');
+  if(box && groqKey){
+    box.innerHTML=`<div class="train-ai-thinking"><span style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim)">AI 評估中</span><span class="dot"></span><span class="dot" style="animation-delay:0.2s"></span><span class="dot" style="animation-delay:0.4s"></span></div>`;
+    try{
+      const weekSummary=getWeekSummary();
+      const res=await callAI([
+        {role:'system',content:'你係一個健身教練，用廣東話簡短回答（1-2句），判斷今日嘅訓練選擇是否合適。'},
+        {role:'user',content:`今日我想做 ${DAYS[dayIdx].title}（${DAYS[dayIdx].subtitle}）。本週訓練記錄：${weekSummary}。請評估今日做呢個訓練係咪適合，有冇要注意嘅地方？`}
+      ]);
+      box.innerHTML=`<div style="font-size:12px;color:var(--cream2);font-family:'Courier Prime',monospace;line-height:1.7">
+        <i class="ti ti-robot" style="color:var(--amber);margin-right:6px"></i>${res.text}
+      </div>`;
+      await new Promise(r=>setTimeout(r,2500));
+    }catch(e){ /* skip if AI fails */ }
+  }
+  renderTrain();
+}
+
+function getWeekSummary(){
+  // Summarize this week's training for AI context
+  const today=new Date(_todayDateStr+'T12:00:00');
+  const dow=today.getDay(); const mo=dow===0?-6:1-dow;
+  const monday=new Date(today); monday.setDate(today.getDate()+mo);
+  const summary=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(monday); d.setDate(monday.getDate()+i);
+    const ds=d.toISOString().split('T')[0];
+    const keys=Object.keys(logData).filter(k=>k.startsWith(ds+'_'));
+    if(keys.length){
+      const done=keys.filter(k=>logData[k].done).length;
+      const dayIdx=getDayForDate(ds);
+      summary.push(`${d.toLocaleDateString('zh-HK',{weekday:'short'})} ${DAYS[dayIdx]?.title||'?'}(${done}組完成)`);
+    }
+  }
+  return summary.length?summary.join('、'):'本週未有記錄';
 }
 
 function setDay(i) {
   activeDay=i;
+  ui.trainSelector=false;
   document.querySelectorAll('.day-pill').forEach((p,idx)=>p.classList.toggle('active',idx===i));
   const tb=document.getElementById('trainBody');
   if(tb){tb.style.opacity='0';tb.style.transform='translateY(10px)';setTimeout(()=>{renderDayContent();tb.style.transition='all 0.3s ease';tb.style.opacity='1';tb.style.transform='translateY(0)';},150);}
+  else renderTrain();
 }
 
 function buildAIPlanSection(){
