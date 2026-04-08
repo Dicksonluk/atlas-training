@@ -1084,7 +1084,12 @@ function getDayForDate(dateStr){
   if(weekPlan[dateStr]!==undefined) return weekPlan[dateStr];
   const m=[6,0,1,2,3,4,5]; return m[new Date(dateStr+'T12:00:00').getDay()]??0;
 }
-let activeLogDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+// Always use local date (not UTC) — fixes HK timezone off-by-one after midnight
+function localDateStr(d){
+  d=d||new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+let activeLogDate = localDateStr();
 let activeDay = getDayForDate(activeLogDate);
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 const ui = {};
@@ -1096,7 +1101,7 @@ window._time=60; window._sport=0; window._sore=false;
 let groqKey = localStorage.getItem('atlas_groq_key')||'';
 let chatHistory = [];
 // AI plan
-const _todayDateStr = new Date().toISOString().split('T')[0];
+const _todayDateStr = localDateStr();
 let aiPlan = null;
 try { aiPlan = JSON.parse(localStorage.getItem('atlas_ai_plan_'+_todayDateStr)||'null'); } catch(e){}
 
@@ -1196,7 +1201,7 @@ function goToDate(dateStr){
 function shiftLogDate(n){
   const d=new Date(activeLogDate+'T12:00:00');
   d.setDate(d.getDate()+n);
-  setLogDate(d.toISOString().split('T')[0]);
+  setLogDate(localDateStr(d));
   renderTrain();
 }
 function toast(m) {
@@ -1354,13 +1359,13 @@ function renderCheckin() {
 }
 
 function getWeightInput() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   return weightData[today]?.weight || '';
 }
 function saveWeightFromInput() {
   const w = document.getElementById('weightInput')?.value;
   if (w) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     weightData[today] = { weight: parseFloat(w), ts: Date.now() };
     saveWeightData();
   }
@@ -2103,7 +2108,7 @@ function getWeekSummary(){
   const summary=[];
   for(let i=0;i<7;i++){
     const d=new Date(monday); d.setDate(monday.getDate()+i);
-    const ds=d.toISOString().split('T')[0];
+    const ds=localDateStr(d);
     const keys=Object.keys(logData).filter(k=>k.startsWith(ds+'_'));
     if(keys.length){
       const done=keys.filter(k=>logData[k].done).length;
@@ -2735,7 +2740,7 @@ function buildWeekPlanner(){
   for(let i=0;i<7;i++){
     const d=new Date(monday);
     d.setDate(monday.getDate()+i);
-    weekDays.push(d.toISOString().split('T')[0]);
+    weekDays.push(localDateStr(d));
   }
   const dayLabels=['週一','週二','週三','週四','週五','週六','週日'];
   const opts=[
