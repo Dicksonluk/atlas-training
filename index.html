@@ -921,6 +921,11 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- DATE DETAIL MODAL -->
+<div class="modal-ov" id="dateDetailModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" id="dateDetailBox" style="max-height:82vh;overflow-y:auto;padding:18px 16px"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1863,6 +1868,28 @@ const DAY_ICONS = ['🏋️','🔙','🦵','⚡','🏋️','🏐','😴'];
 // Icons: PUSH-heavy, PULL-rows, LEGS-explosive, PUSH-definition, PULL-width, AGILITY, VOLLEYBALL
 const DAY_TI    = ['ti-barbell','ti-arrows-down','ti-bolt','ti-dumbbell','ti-arrow-big-down','ti-run','ti-ball-volleyball'];
 
+function showDateDetail(dateStr) {
+  setLogDate(dateStr);
+  const d=new Date(dateStr+'T12:00:00');
+  const label=d.toLocaleDateString('zh-HK',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  const hasLog=Object.keys(logData).some(k=>k.startsWith(dateStr+'_'));
+  const box=document.getElementById('dateDetailBox');
+  box.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--amber);letter-spacing:1px">${label}</div>
+      <button onclick="document.getElementById('dateDetailModal').classList.remove('open')"
+        style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;padding:0 4px">×</button>
+    </div>
+    ${hasLog ? buildDateSummary(dateStr) : `<div style="padding:24px 0;text-align:center">
+      <div style="font-family:'Courier Prime',monospace;font-size:12px;color:var(--dim);margin-bottom:14px">呢日暫無記錄</div>
+      <button onclick="document.getElementById('dateDetailModal').classList.remove('open');goToDate('${dateStr}')"
+        style="background:var(--rust);border:none;border-radius:var(--r-btn);padding:10px 24px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;cursor:pointer">
+        <i class="ti ti-player-play" style="margin-right:6px"></i>去訓練
+      </button>
+    </div>`}`;
+  document.getElementById('dateDetailModal').classList.add('open');
+}
+
 function buildDateSummary(dateStr) {
   const day = DAYS[activeDay];
   if (!day) return '';
@@ -2639,7 +2666,7 @@ function buildHistoryLog() {
     const dayEm = DAYS[dayIdx]?.em || '';
     const isToday = date === _todayDateStr;
     const barColor = pct >= 80 ? '#8fa840' : pct >= 40 ? 'var(--amber)' : 'var(--dim2)';
-    return `<div onclick="goToDate('${date}');"
+    return `<div onclick="showDateDetail('${date}')"
       style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:2px;background:var(--bg3);border-left:3px solid ${isToday ? 'var(--amber)' : 'var(--border2)'};cursor:pointer;transition:opacity 0.15s"
       onmousedown="this.style.opacity='0.7'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
       <div style="flex:1;min-width:0">
@@ -2698,7 +2725,7 @@ function buildCalendar(){
     const planned=weekPlan[ds]!==undefined;
     const pct=log?log.done/log.total:0;
     const dotC=pct>=0.8?'#8fa840':pct>=0.4?'var(--amber)':'var(--rust2)';
-    cells+=`<div onclick="goToDate('${ds}')"
+    cells+=`<div onclick="showDateDetail('${ds}')"
       style="text-align:center;padding:3px 1px;cursor:pointer">
       <div style="width:26px;height:26px;line-height:26px;margin:0 auto;border-radius:50%;
         background:${isToday?'var(--amber)':'transparent'};
@@ -2811,10 +2838,6 @@ function renderProgress() {
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
       <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 月曆 · 訓練記錄</div>
       ${buildCalendar()}
-    </div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
-      <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 本週訓練計劃</div>
-      ${buildWeekPlanner()}
     </div>
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px">
       <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 訓練歷史記錄</div>
