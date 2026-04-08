@@ -2070,16 +2070,20 @@ function renderDayContent() {
         <div class="ref-cell"><div class="ref-cl">進階</div><div class="ref-cv">${ex.refWeights.a}</div></div>
       </div></div>`;
 
-      const yq=encodeURIComponent(ex.ytSearch||ex.name);
-      let yt='';
-      if(ex.ytId) yt=`<div class="yt-wrap" id="yw_${k}">
+      const yq=encodeURIComponent((ex.ytSearch||ex.name)+' tutorial form');
+      const ytSearchUrl=`https://www.youtube.com/results?search_query=${yq}`;
+      let yt=`<a href="${ytSearchUrl}" target="_blank" style="display:flex;align-items:center;gap:10px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.3);border-radius:var(--r-sm);padding:12px 14px;color:#ff6060;font-size:13px;text-decoration:none;font-family:'Courier Prime',monospace;margin-bottom:10px;transition:all 0.2s" onclick="event.stopPropagation()">
+        <i class="ti ti-brand-youtube" style="font-size:20px;flex-shrink:0"></i>
+        <span>搜尋「${ex.name}」教學影片</span>
+        <i class="ti ti-external-link" style="margin-left:auto;opacity:0.6"></i>
+      </a>`;
+      if(ex.ytId) yt+=`<div class="yt-wrap" id="yw_${k}">
         <img class="yt-thumb" src="https://img.youtube.com/vi/${ex.ytId}/hqdefault.jpg" alt=""
-          onerror="this.parentElement.style.display='none'">
+          onerror="this.style.display='none'">
         <button class="yt-play" onclick="loadYT('${k}','${ex.ytId}')">
-          <svg viewBox="0 0 24 24" style="fill:var(--amber);width:20px;height:20px;margin-left:4px"><path d="M8 5v14l11-7z"/></svg>
+          <i class="ti ti-player-play-filled" style="color:var(--amber);font-size:22px;margin-left:3px"></i>
         </button>
       </div>`;
-      yt+=`<a class="yt-link" href="https://www.youtube.com/results?search_query=${yq}" target="_blank"><span class="yt-ic">▶</span> YouTube搜尋「${ex.name}」教學</a>`;
 
       html+=`
         <div class="ex-card ${isDone?'done':''}" id="ec_${k}" style="border-left:3px solid ${accentC}50">
@@ -2090,6 +2094,10 @@ function renderDayContent() {
               <div class="ex-meta"><span class="ex-badge">${ex.sets}</span>${tags}</div>
             </div>
             <div class="ex-right">
+              <a href="${ytSearchUrl}" target="_blank" onclick="event.stopPropagation()" title="搜尋影片教學"
+                style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(255,0,0,0.12);border:1px solid rgba(255,80,80,0.35);color:#ff6060;text-decoration:none;flex-shrink:0;transition:all 0.2s">
+                <i class="ti ti-brand-youtube" style="font-size:16px"></i>
+              </a>
               <button class="log-btn ${isDone?'logged':''}" onclick="toggleLog(event,'${k}')">${isDone?'✓ DONE':'LOG'}</button>
               <button class="exp-btn ${isOpen?'open':''}">▾</button>
             </div>
@@ -2245,23 +2253,46 @@ function switchTab(k,t){ui[k+'_t']=t;renderDayContent();}
 function toggleLog(ev,k){ev.stopPropagation();ui[k+'_l']=!ui[k+'_l'];renderDayContent();}
 
 // ── CUSTOM EXERCISES IN TRAIN PAGE ────────────────────────────
+// ── CUSTOM EXERCISE PRESETS BY MUSCLE GROUP ──────────────────
+const CX_CATS = [
+  { key:'chest',    label:'胸部',   icon:'ti-barbell',          color:'#c84820', tag:'chest',
+    list:['Flat Barbell Bench Press','Incline DB Press','Cable Fly','DB Flat Press','Push-up','Dumbbell Pullover','Cable Crossover','Chest Dip'] },
+  { key:'back',     label:'背部',   icon:'ti-arrow-back-up',    color:'#6090e0', tag:'back',
+    list:['Pull-up','Lat Pulldown','Seated Cable Row','Chest-Supported DB Row','Barbell Bent-Over Row','Single-arm DB Row','Face Pull','Straight-arm Pulldown'] },
+  { key:'legs',     label:'腿部',   icon:'ti-run',              color:'#8fa840', tag:'legs',
+    list:['Back Squat','Leg Press','Romanian Deadlift','Leg Curl','Leg Extension','Calf Raise','Pendulum Squat','Bulgarian Split Squat','Hip Thrust','Sumo Deadlift'] },
+  { key:'shoulder', label:'膊頭',   icon:'ti-arrows-up',        color:'#c090e0', tag:'shoulder',
+    list:['Seated DB Overhead Press','Lateral Raise','Arnold Press','Rear Delt Fly','Upright Row','Landmine Press','Cable Lateral Raise','Face Pull'] },
+  { key:'arms',     label:'手臂',   icon:'ti-line-dotted',      color:'#f0a820', tag:'arms',
+    list:['Barbell Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Tricep Pushdown Rope','Skull Crusher','Overhead Tricep Extension','Close-grip Bench Press'] },
+  { key:'core',     label:'核心',   icon:'ti-circles',          color:'#e8a030', tag:'core',
+    list:['Plank','Dead Bug','Bird Dog','Hanging Leg Raise','Cable Crunch','Russian Twist','Ab Wheel','Side Plank','Pallof Press','Glute Bridge'] },
+  { key:'rehab',    label:'康復',   icon:'ti-heart-handshake',  color:'#80b0ff', tag:'shoulder-rehab',
+    list:['Band External Rotation','Band Pull-Apart','Wall Slide','Clamshell','Lateral Band Walk','Piriformis Stretch','Sleeper Stretch','X-leg Warmup Circuit'] },
+  { key:'power',    label:'爆發力', icon:'ti-bolt',             color:'#ff8060', tag:'explosive',
+    list:['Box Jump','Broad Jump','Power Clean','Hang Clean','Med Ball Slam','Battle Rope','Kettlebell Swing','Plyometric Push-up'] },
+];
+
 function _cxKey(dayId){ return `atlas_cx_${activeLogDate}_d${dayId}`; }
 function getCustomExes(dayId){
   try{ return JSON.parse(localStorage.getItem(_cxKey(dayId))||'[]'); }catch(e){ return []; }
 }
-function saveCustomExes(dayId,arr){
-  localStorage.setItem(_cxKey(dayId),JSON.stringify(arr));
+function saveCustomExes(dayId,arr){ localStorage.setItem(_cxKey(dayId),JSON.stringify(arr)); }
+
+function addCustomExNamed(dayId, name, tag, sets){
+  if(!name.trim()){ toast('請輸入動作名稱'); return; }
+  const arr=getCustomExes(dayId);
+  arr.push({name:name.trim(), tag:tag||'core', sets:sets||'3×10'});
+  saveCustomExes(dayId,arr);
+  ui['cx_cat_'+dayId]=null; // reset category after adding
+  renderDayContent();
+  toast('✓ 已加入：'+name.trim());
 }
 function addCustomEx(dayId){
   const inp=document.getElementById('cx_input');
   const setsInp=document.getElementById('cx_sets');
-  const name=(inp?.value||'').trim();
-  if(!name){ toast('請輸入動作名稱'); inp?.focus(); return; }
-  const sets=(setsInp?.value||'').trim()||'3×10';
-  const arr=getCustomExes(dayId);
-  arr.push({name,sets});
-  saveCustomExes(dayId,arr);
-  renderDayContent();
+  const tag=ui['cx_pending_tag_'+dayId]||'core';
+  addCustomExNamed(dayId, inp?.value||'', tag, setsInp?.value||'3×10');
 }
 function removeCustomEx(dayId,i){
   const arr=getCustomExes(dayId);
@@ -2269,48 +2300,95 @@ function removeCustomEx(dayId,i){
   saveCustomExes(dayId,arr);
   renderDayContent();
 }
+function setCxCat(dayId, catKey){
+  ui['cx_cat_'+dayId]=catKey;
+  renderDayContent();
+}
+
 function buildCustomExSection(dayId){
   const arr=getCustomExes(dayId);
+  const selCat=ui['cx_cat_'+dayId]||null;
+  const catData=CX_CATS.find(c=>c.key===selCat);
+
+  // Logged custom exercises
   const rows=arr.map((ex,i)=>{
     const k=`${activeLogDate}_d${dayId}_cx_${i}`;
     const isDone=logData[k]?.done;
     const isOpen=ui[k+'_l'];
+    const c=tagColor(ex.tag||'core');
+    const ytUrl=`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' tutorial')}`;
     const logPanel=isOpen?`<div class="log-panel open">${buildSetLog(k,ex.sets)}</div>`:'';
-    return `<div class="ex-card ${isDone?'done':''}" style="border-left:3px solid var(--amber)50">
+    return `<div class="ex-card ${isDone?'done':''}" style="border-left:3px solid ${c}60">
       <div class="ex-main">
-        <div class="ex-num" style="color:var(--amber)">✎</div>
+        <div class="ex-num" style="color:${c};font-size:18px"><i class="ti ti-pencil"></i></div>
         <div class="ex-body">
           <div class="ex-name">${ex.name}</div>
-          <div class="ex-meta"><span class="ex-badge">${ex.sets}</span><span class="tag" style="background:rgba(232,160,48,0.15);color:var(--amber);border-color:var(--amber)40">自訂</span></div>
+          <div class="ex-meta"><span class="ex-badge">${ex.sets}</span>
+            <span class="tag" style="background:${c}18;color:${c};border:1px solid ${c}30">${ex.tag||'自訂'}</span>
+          </div>
         </div>
         <div class="ex-right">
-          <button class="log-btn ${isDone?'logged':''}" onclick="toggleLog(event,'${k}')">${isDone?'✓ DONE':'LOG'}</button>
-          <button onclick="removeCustomEx(${dayId},${i})" style="background:none;border:none;color:var(--dim2);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">×</button>
+          <a href="${ytUrl}" target="_blank" onclick="event.stopPropagation()" title="搜尋影片"
+            style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:rgba(255,0,0,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff6060;text-decoration:none;flex-shrink:0">
+            <i class="ti ti-brand-youtube" style="font-size:14px"></i>
+          </a>
+          <button class="log-btn ${isDone?'logged':''}" onclick="toggleLog(event,'${k}')">${isDone?'✓':'LOG'}</button>
+          <button onclick="removeCustomEx(${dayId},${i})" style="background:none;border:none;color:var(--dim2);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0">×</button>
         </div>
       </div>
       ${logPanel}
     </div>`;
   }).join('');
 
+  // Category picker
+  const catPicker=CX_CATS.map(c=>`
+    <button onclick="setCxCat(${dayId},'${c.key}')"
+      style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:var(--r-sm);border:1px solid ${selCat===c.key?c.color:'var(--border2)'};background:${selCat===c.key?c.color+'20':'rgba(255,255,255,0.02)'};cursor:pointer;transition:all 0.2s;min-width:58px">
+      <i class="ti ${c.icon}" style="font-size:20px;color:${c.color}"></i>
+      <span style="font-family:'Courier Prime',monospace;font-size:9px;color:${selCat===c.key?c.color:'var(--dim)'};letter-spacing:0.5px">${c.label}</span>
+    </button>`).join('');
+
+  // Preset list for selected category
+  let presetList='';
+  if(catData){
+    ui['cx_pending_tag_'+dayId]=catData.tag;
+    presetList=`<div style="margin:10px 0 8px">
+      <div style="font-family:'Courier Prime',monospace;font-size:9px;color:${catData.color};letter-spacing:2px;margin-bottom:8px">// ${catData.label} 常用動作</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        ${catData.list.map(name=>`<button onclick="addCustomExNamed(${dayId},'${name.replace(/'/g,"\\'")}','${catData.tag}','3×10')"
+          style="padding:6px 12px;border-radius:var(--r-btn);border:1px solid ${catData.color}40;background:${catData.color}10;color:var(--cream2);font-family:'Courier Prime',monospace;font-size:11px;cursor:pointer;transition:all 0.15s"
+          onmousedown="this.style.background='${catData.color}30'">
+          <i class="ti ti-plus" style="font-size:10px;margin-right:3px"></i>${name}
+        </button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Custom input row
+  const customRow=`<div style="display:flex;gap:8px;margin-top:8px">
+    <input id="cx_input" type="text" placeholder="${catData?catData.label+'動作名稱…':'動作名稱（先揀類別）'}" autocomplete="off"
+      style="flex:1;background:var(--bg3);border:1px solid var(--border2);padding:10px 12px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:13px;outline:none;border-radius:var(--r-sm)"
+      onkeydown="if(event.key==='Enter')addCustomEx(${dayId})">
+    <input id="cx_sets" type="text" placeholder="組數" value="3×10"
+      style="width:68px;background:var(--bg3);border:1px solid var(--border2);padding:10px 6px;color:var(--cream2);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:var(--r-sm);text-align:center">
+    <button onclick="addCustomEx(${dayId})"
+      style="background:linear-gradient(135deg,var(--amber),var(--gold));border:none;padding:10px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--bg);cursor:pointer;border-radius:var(--r-btn);box-shadow:0 3px 10px rgba(240,168,48,0.3)">加入</button>
+  </div>`;
+
   return `<div style="margin:0 0 80px">
     <div class="sec-hdr">
-      <span class="sec-icon" style="background:rgba(232,160,48,0.15);color:var(--amber)">
-        <svg viewBox="0 0 18 18" width="12" height="12"><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </span>
-      <div class="sec-lbl">自訂動作</div>
+      <span class="sec-icon" style="background:rgba(240,168,48,0.15);color:var(--amber)"><i class="ti ti-circle-plus" style="font-size:13px"></i></span>
+      <div class="sec-lbl">加入自訂動作</div>
       <div class="sec-line"></div>
     </div>
     ${rows}
-    <div style="display:flex;gap:8px;margin:10px 0 6px">
-      <input id="cx_input" type="text" placeholder="動作名稱…" autocomplete="off"
-        style="flex:1;background:var(--bg3);border:1px solid var(--border2);padding:10px 12px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:13px;outline:none;border-radius:2px"
-        onkeydown="if(event.key==='Enter')addCustomEx(${dayId})">
-      <input id="cx_sets" type="text" placeholder="組數" value="3×10"
-        style="width:72px;background:var(--bg3);border:1px solid var(--border2);padding:10px 8px;color:var(--cream2);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:2px;text-align:center">
-      <button onclick="addCustomEx(${dayId})"
-        style="background:var(--amber);border:none;padding:10px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--bg);cursor:pointer;border-radius:2px">+ 加入</button>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-card);padding:14px;box-shadow:0 3px 12px rgba(0,0,0,0.2)">
+      <div style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px;margin-bottom:10px">// 01 · 揀肌肉群</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${catPicker}</div>
+      ${presetList}
+      <div style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px;margin-top:12px;margin-bottom:6px">// 02 · 或者自己輸入</div>
+      ${customRow}
     </div>
-    <div style="font-size:10px;color:var(--dim2);font-family:'Courier Prime',monospace;letter-spacing:1px">// 臨時加入今日訓練，唔影響標準計劃</div>
   </div>`;
 }
 function loadYT(k,id){const w=document.getElementById('yw_'+k);if(w)w.innerHTML=`<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" allowfullscreen allow="autoplay"></iframe>`;}
