@@ -889,15 +889,14 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
-<div class="page active" id="page-checkin"></div>
+<div class="page" id="page-checkin"></div>
 <div class="page" id="page-ai"></div>
-<div class="page" id="page-train"></div>
+<div class="page active" id="page-train"></div>
 <div class="page" id="page-progress"></div>
 
 <nav class="nav">
-  <button class="nav-item active" onclick="showPage('checkin')"><i class="ti ti-sun nav-icon-ti"></i>TODAY</button>
+  <button class="nav-item active" onclick="showPage('train')"><i class="ti ti-barbell nav-icon-ti"></i>TRAIN</button>
   <button class="nav-item" onclick="showPage('ai')"><i class="ti ti-brain nav-icon-ti"></i>A.I.</button>
-  <button class="nav-item" onclick="showPage('train')"><i class="ti ti-barbell nav-icon-ti"></i>TRAIN</button>
   <button class="nav-item" onclick="showPage('progress')"><i class="ti ti-chart-bar nav-icon-ti"></i>PROGRESS</button>
 </nav>
 
@@ -1182,10 +1181,12 @@ function saveLog() {
 function ek(d,s,e) { return `${activeLogDate}_d${d}_s${s}_e${e}`; }
 function ekOld(d,s,e) { return `d${d}s${s}e${e}`; } // backward compat
 
-function setLogDate(dateStr){
+function setLogDate(dateStr, forceSelector=false){
   activeLogDate=dateStr;
   activeDay=getDayForDate(dateStr);
-  ui.trainSelector=true; // show selector for new date
+  // If this date has existing log data, show the workout directly (not the selector)
+  const hasLog=Object.keys(logData).some(k=>k.startsWith(dateStr+'_'));
+  ui.trainSelector=forceSelector||!hasLog;
   renderTrain();
 }
 function shiftLogDate(n){
@@ -1238,15 +1239,15 @@ function confirmReset(){
 
 // ── NAV ──────────────────────────────────────────────────────
 function showPage(name) {
+  if(name==='checkin') name='train'; // merged — checkin is now part of train
   currentPage=name;
-  document.querySelectorAll('.page').forEach(p=>{ p.classList.remove('active'); });
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+name);
   pg.classList.add('active');
   pg.classList.add('page-enter');
   setTimeout(()=>pg.classList.remove('page-enter'),400);
-  document.querySelectorAll('.nav-item')[['checkin','ai','train','progress'].indexOf(name)].classList.add('active');
-  if(name==='checkin') renderCheckin();
+  document.querySelectorAll('.nav-item')[['train','ai','progress'].indexOf(name)]?.classList.add('active');
   if(name==='ai') renderAI();
   if(name==='train'){ if(ui.trainSelector===undefined) ui.trainSelector=true; renderTrain(); }
   if(name==='progress') renderProgress();
@@ -1372,7 +1373,7 @@ function setSore(v) {
 }
 function goDirectTrain() {
   saveWeightFromInput();
-  showPage('train');
+  selectTrainingType(activeDay);
 }
 
 const CI_PRESETS=[
@@ -1476,7 +1477,7 @@ function acceptInlinePlan(){
   aiPlan=exs;
   localStorage.setItem('atlas_ai_plan_'+_todayDateStr,JSON.stringify(aiPlan));
   toast('✓ 今日計劃已儲存！');
-  showPage('train');
+  selectTrainingType(activeDay); // already on train page, just start workout
 }
 
 function goToAI() {
@@ -1902,8 +1903,42 @@ function renderTrain() {
       </div>`;
     }).join('');
 
+    const isActiveToday=(activeLogDate===_todayDateStr);
     pg.innerHTML=`${dateBar}
       <div class="train-selector">
+        ${isActiveToday?`<!-- COMPACT DAILY STATUS STRIP -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 14px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px">// 今日狀態</span>
+            <button onclick="generateCheckinPlan()" style="background:rgba(240,168,48,0.1);border:1px solid rgba(240,168,48,0.3);color:var(--amber);font-family:'Courier Prime',monospace;font-size:10px;padding:3px 10px;cursor:pointer;border-radius:var(--r-btn)"><i class="ti ti-sparkles" style="font-size:10px;margin-right:3px"></i>AI計劃</button>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:140px">
+              <i class="ti ti-bolt" style="font-size:14px;color:var(--amber)"></i>
+              <span id="eVal" style="font-family:'Courier Prime',monospace;font-size:13px;font-weight:700;color:var(--amber);min-width:16px">5</span>
+              <input type="range" min="1" max="10" value="5" style="flex:1;height:3px;accent-color:var(--amber);cursor:pointer" oninput="document.getElementById('eVal').textContent=this.value">
+            </div>
+            <div style="display:flex;gap:4px">
+              <div class="chip${window._time===30?' sel':''}" onclick="selChip('t',this,30)" style="font-size:10px;padding:3px 8px">30分</div>
+              <div class="chip${!window._time||window._time===60?' sel':''}" onclick="selChip('t',this,60)" style="font-size:10px;padding:3px 8px">1小時</div>
+              <div class="chip${window._time===90?' sel':''}" onclick="selChip('t',this,90)" style="font-size:10px;padding:3px 8px">90分+</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px">
+            <button id="tNo" class="tog${!window._sore?' on':''}" onclick="setSore(false)" style="font-size:10px;padding:3px 10px">✓ 正常</button>
+            <button id="tYes" class="tog${window._sore?' warn':''}" onclick="setSore(true)" style="font-size:10px;padding:3px 10px">⚠ 唔舒服</button>
+            <div style="display:flex;align-items:center;gap:5px;margin-left:auto">
+              <i class="ti ti-scale" style="font-size:13px;color:var(--dim2)"></i>
+              <input type="number" id="weightInput" step="0.1" placeholder="--" value="${getWeightInput()}"
+                style="width:54px;background:var(--bg3);border:1px solid var(--border);padding:3px 6px;color:var(--cream);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;outline:none;border-radius:4px;text-align:right"
+                onchange="saveWeightFromInput()">
+              <span style="font-family:'Courier Prime',monospace;font-size:10px;color:var(--dim2)">kg</span>
+            </div>
+          </div>
+          <input id="ciNotes" type="text" placeholder="備注（攰、膊頭唔舒服...）"
+            style="width:100%;margin-top:7px;background:var(--bg3);border:1px solid var(--border);padding:5px 10px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:11px;outline:none;border-radius:4px;box-sizing:border-box">
+          <div id="ciPlanOut" style="margin-top:8px"></div>
+        </div>`:''}
         <!-- TODAY'S HERO CARD -->
         <div class="today-train-hero" id="trainHero">
           <i class="ti ${DAY_TI[activeDay]} tth-icon"></i>
@@ -2716,7 +2751,8 @@ function renderProgress() {
 
 // ── INIT ──────────────────────────────────────────────────────
 initThemeBtn();
-renderCheckin();
+ui.trainSelector=true;
+showPage('train');
 </script>
 </body>
 </html>
