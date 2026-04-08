@@ -2,8 +2,15 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ATLAS">
+<meta name="theme-color" content="#140d04">
 <title>ATLAS — Training System</title>
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22ATLAS%20Training%20System%22%2C%22short_name%22%3A%22ATLAS%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23140d04%22%2C%22theme_color%22%3A%22%23f0a830%22%2C%22orientation%22%3A%22portrait%22%7D">
+<!-- Apple touch icon (SVG → base64 embedded) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23140d04'/%3E%3Ccircle cx='90' cy='90' r='72' stroke='%23f0a830' stroke-width='4' fill='none'/%3E%3Ccircle cx='90' cy='90' r='46' stroke='%23f0a830' stroke-width='2.5' fill='none'/%3E%3Cellipse cx='90' cy='90' rx='72' ry='26' stroke='%23c84820' stroke-width='2.5' fill='none' opacity='0.7'/%3E%3Cline x1='18' y1='90' x2='162' y2='90' stroke='%23f0a830' stroke-width='2.5'/%3E%3Ccircle cx='90' cy='90' r='10' fill='%23f0a830'/%3E%3Ctext x='90' y='148' font-family='serif' font-size='22' font-weight='900' fill='%23f0a830' text-anchor='middle' letter-spacing='8'%3EATLAS%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -842,6 +849,11 @@ input[type=range]::-webkit-slider-thumb {
     <div class="modal-desc">將之前嘅備份碼貼入下方，按恢復鍵。</div>
     <textarea class="modal-ta" id="importTxt" placeholder="貼入備份碼..."></textarea>
     <button class="modal-btn-o" onclick="importLog()">⬇ 恢復記錄</button>
+    <div style="margin:20px 0 10px;border-top:1px solid var(--border);padding-top:16px">
+      <div class="modal-lbl" style="color:var(--rust2)">⚠ 危險區域</div>
+      <div class="modal-desc">清除所有訓練記錄、週計劃、AI計劃。清除前建議先備份。</div>
+      <button onclick="confirmReset()" style="width:100%;background:transparent;border:1px solid var(--rust);border-radius:var(--r-btn);padding:12px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:var(--rust2);cursor:pointer">🗑 清除所有記錄</button>
+    </div>
     <button class="modal-close" onclick="closeBackup()">— 關閉 —</button>
   </div>
 </div>
@@ -1141,6 +1153,22 @@ function importLog() {
     if(currentPage==='train') renderDayContent();
     if(currentPage==='progress') renderProgress();
   } catch(e){ toast('⚠ 備份碼格式錯誤'); }
+}
+function confirmReset(){
+  if(!confirm('確定清除所有訓練記錄、週計劃同AI計劃？\n\n此操作不可還原，建議先備份。')) return;
+  // Clear all training data
+  logData={};
+  try { localStorage.removeItem('atlas_v4'); } catch(e){}
+  try { localStorage.removeItem('atlas_weekplan'); } catch(e){}
+  weekPlan={};
+  // Clear all custom exercises and AI plans
+  Object.keys(localStorage).filter(k=>k.startsWith('atlas_cx_')||k.startsWith('atlas_ai_plan_')).forEach(k=>localStorage.removeItem(k));
+  saveLog();
+  aiPlan=null;
+  toast('✓ 記錄已清除，重新開始！');
+  closeBackup();
+  if(currentPage==='train') renderTrain();
+  if(currentPage==='progress') renderProgress();
 }
 
 // ── NAV ──────────────────────────────────────────────────────
