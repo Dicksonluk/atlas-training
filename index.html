@@ -153,29 +153,65 @@ body::after {
 
 /* TRAINING TYPE SELECTOR */
 .train-selector { padding: 16px; }
-.train-selector-hdr { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px; color:var(--amber); margin-bottom:14px; }
-.train-type-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.train-selector-hdr { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px; color:var(--dim2); margin:20px 0 10px; text-transform:uppercase; }
+
+/* Hero CTA for today's recommended training */
+.today-train-hero {
+  background: linear-gradient(135deg, #2a1a08 0%, var(--bg3) 100%);
+  border: 1.5px solid var(--amber);
+  border-radius: var(--r);
+  padding: 22px 20px 18px;
+  margin-bottom: 8px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 6px 32px rgba(240,168,48,0.15);
+}
+.today-train-hero::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--rust), var(--amber), var(--gold));
+}
+.today-train-hero::after {
+  content:'今日'; position:absolute; top:14px; right:16px;
+  font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px;
+  color:var(--amber); opacity:0.6;
+}
+.tth-icon { font-size:48px; color:var(--amber); margin-bottom:10px; display:block; line-height:1; }
+.tth-title { font-family:'Playfair Display',serif; font-size:32px; font-weight:900; color:var(--cream); line-height:1; }
+.tth-em { color:var(--amber); font-style:italic; }
+.tth-sub { font-size:11px; color:var(--dim); font-family:'Courier Prime',monospace; margin:5px 0 16px; letter-spacing:0.5px; }
+.tth-btn {
+  display:block; width:100%; padding:14px;
+  background: linear-gradient(90deg, var(--rust), var(--rust2));
+  border:none; border-radius:var(--r-btn); color:#fff;
+  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700;
+  letter-spacing:3px; cursor:pointer; transition:all 0.2s;
+  box-shadow: 0 4px 16px rgba(200,72,32,0.4);
+}
+.tth-btn:active { transform:scale(0.98); }
+
+/* AI eval box — shown after selection in hero */
+.train-ai-box { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r-card); padding:14px 16px; margin-top:10px; min-height:44px; }
+.train-ai-thinking { display:flex; gap:5px; align-items:center; }
+
+/* Smaller alt cards grid */
+.train-type-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
 .train-type-card {
   background: linear-gradient(135deg, var(--bg2), var(--bg3));
-  border: 1px solid var(--border2);
-  border-radius: var(--r-card); padding: 16px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-card); padding: 12px 10px;
   cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   text-align: left;
 }
-.train-type-card:active { transform: scale(0.96); }
-.train-type-card.recommended { border-color: var(--amber); box-shadow: 0 4px 18px rgba(240,168,48,0.2); }
-.train-type-card.recommended::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--amber),var(--gold)); border-radius:var(--r-card) var(--r-card) 0 0; }
-.train-type-card.done-today { border-color: rgba(107,122,48,0.6); }
-.ttc-icon { font-size:32px; margin-bottom:8px; display:block; }
-.ttc-name { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); line-height:1; }
-.ttc-sub { font-size:10px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:3px; letter-spacing:0.5px; }
-.ttc-badge { position:absolute; top:10px; right:10px; font-size:9px; font-family:'Courier Prime',monospace; padding:2px 8px; border-radius:var(--r-btn); }
+.train-type-card:active { transform: scale(0.95); }
+.train-type-card.recommended { border-color: rgba(240,168,48,0.5); }
+.train-type-card.done-today { border-color: rgba(107,122,48,0.4); opacity:0.65; }
+.ttc-icon { font-size:22px; margin-bottom:5px; display:block; }
+.ttc-name { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:var(--cream); line-height:1; letter-spacing:1px; }
+.ttc-sub { font-size:9px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ttc-badge { position:absolute; top:6px; right:6px; font-size:8px; font-family:'Courier Prime',monospace; padding:1px 6px; border-radius:var(--r-btn); }
 .ttc-badge.fresh { background:rgba(107,122,48,0.2); color:#8fa840; border:1px solid rgba(107,122,48,0.3); }
 .ttc-badge.recent { background:rgba(240,168,48,0.12); color:var(--amber); border:1px solid rgba(240,168,48,0.25); }
 .ttc-badge.done { background:rgba(200,72,32,0.12); color:var(--rust2); border:1px solid rgba(200,72,32,0.25); }
-.train-ai-box { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r-card); padding:14px 16px; margin-bottom:12px; min-height:50px; }
-.train-ai-thinking { display:flex; gap:5px; align-items:center; }
 
 /* PAGES */
 .page {
@@ -1813,7 +1849,8 @@ function buildLogSummary() {
 
 // ── TRAIN ─────────────────────────────────────────────────────
 const DAY_ICONS = ['🏋️','🔙','🦵','⚡','🏋️','🏐','😴'];
-const DAY_TI    = ['ti-barbell','ti-arrow-back-up','ti-run','ti-bolt','ti-barbell','ti-ball-volleyball','ti-moon'];
+// Icons: PUSH-heavy, PULL-rows, LEGS-explosive, PUSH-definition, PULL-width, AGILITY, VOLLEYBALL
+const DAY_TI    = ['ti-barbell','ti-arrows-down','ti-bolt','ti-dumbbell','ti-arrow-big-down','ti-run','ti-ball-volleyball'];
 
 function daysSinceLastLog(dayIdx){
   const dates=Object.keys(logData)
@@ -1843,43 +1880,43 @@ function renderTrain() {
   </div>`;
 
   if(showSelector){
-    // Training type selector view
+    // Training type selector — hero CTA + alt grid
+    const today=DAYS[activeDay];
+    const heroAgo=daysSinceLastLog(activeDay);
+    const heroAgoLabel=heroAgo===0?'今日已做':heroAgo===null?'首次訓練':`${heroAgo}日前上次`;
+
+    // Alt cards (all 7, smaller, skip styling for today)
     const cards=DAYS.map((day,i)=>{
       const ago=daysSinceLastLog(i);
       let badgeHtml='', cardClass='train-type-card';
-      if(ago===0){ badgeHtml=`<span class="ttc-badge done">今日已做</span>`; cardClass+=' done-today'; }
-      else if(ago===null){ badgeHtml=`<span class="ttc-badge fresh">未試過</span>`; }
-      else if(ago>=3){ badgeHtml=`<span class="ttc-badge fresh">${ago}日前</span>`; cardClass+=' recommended'; }
-      else { badgeHtml=`<span class="ttc-badge recent">${ago}日前</span>`; }
+      if(ago===0){ badgeHtml=`<span class="ttc-badge done">✓今日</span>`; cardClass+=' done-today'; }
+      else if(ago===null){ badgeHtml=`<span class="ttc-badge fresh">新</span>`; }
+      else if(ago>=3){ badgeHtml=`<span class="ttc-badge fresh">${ago}天</span>`; cardClass+=' recommended'; }
+      else { badgeHtml=`<span class="ttc-badge recent">${ago}天</span>`; }
 
       return `<div class="${cardClass}" onclick="selectTrainingType(${i})">
         ${badgeHtml}
-        <i class="ti ${DAY_TI[i]} ttc-icon" style="color:var(--amber)"></i>
-        <div class="ttc-name">${day.title} <em style="color:var(--amber);font-style:italic">${day.em||''}</em></div>
-        <div class="ttc-sub">${day.subtitle}</div>
+        <i class="ti ${DAY_TI[i]} ttc-icon" style="color:${i===activeDay?'var(--amber)':'var(--dim)'}"></i>
+        <div class="ttc-name">${day.title}</div>
+        <div class="ttc-sub">${day.label}</div>
       </div>`;
     }).join('');
 
     pg.innerHTML=`${dateBar}
       <div class="train-selector">
-        <div class="train-selector-hdr">// 選擇今日訓練類型</div>
-        <div id="trainAiBox" class="train-ai-box" style="margin-bottom:14px">
-          <div style="font-size:12px;color:var(--dim);font-family:'Courier Prime',monospace">
-            <i class="ti ti-info-circle" style="color:var(--amber);margin-right:6px"></i>
-            選擇訓練類型，AI會即時評估係咪適合今日
-          </div>
+        <!-- TODAY'S HERO CARD -->
+        <div class="today-train-hero" id="trainHero">
+          <i class="ti ${DAY_TI[activeDay]} tth-icon"></i>
+          <div class="tth-title">${today.title} <em class="tth-em">${today.em||''}</em></div>
+          <div class="tth-sub">${today.subtitle}<span style="margin-left:10px;opacity:0.5">· ${heroAgoLabel}</span></div>
+          <button class="tth-btn" onclick="selectTrainingType(${activeDay})">
+            <i class="ti ti-player-play" style="margin-right:6px"></i>開始今日訓練
+          </button>
+          <div id="trainAiBox" style="display:none" class="train-ai-box"></div>
         </div>
+        <!-- OTHER OPTIONS -->
+        <div class="train-selector-hdr">// 或者揀其他訓練類型</div>
         <div class="train-type-grid">${cards}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px">
-            <div style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px;margin-bottom:6px">// 快速選擇</div>
-            <div class="day-strip" style="padding-bottom:0">
-              ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})" style="font-size:11px">
-                <div class="dp-l">${d.label}</div><div class="dp-n">${d.name}</div>
-              </div>`).join('')}
-            </div>
-          </div>
-        </div>
       </div>`;
   } else {
     pg.innerHTML=`${dateBar}
@@ -1903,24 +1940,26 @@ function renderTrain() {
 async function selectTrainingType(dayIdx){
   activeDay=dayIdx;
   ui.trainSelector=false;
-
-  // Show quick AI eval in the box before switching
-  const box=document.getElementById('trainAiBox');
-  if(box && groqKey){
-    box.innerHTML=`<div class="train-ai-thinking"><span style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim)">AI 評估中</span><span class="dot"></span><span class="dot" style="animation-delay:0.2s"></span><span class="dot" style="animation-delay:0.4s"></span></div>`;
+  // Immediately render the workout — no blocking delay
+  renderTrain();
+  // Fire AI eval in background — shows in a non-blocking toast/banner at top of workout
+  if(groqKey){
     try{
       const weekSummary=getWeekSummary();
       const res=await callAI([
         {role:'system',content:'你係一個健身教練，用廣東話簡短回答（1-2句），判斷今日嘅訓練選擇是否合適。'},
         {role:'user',content:`今日我想做 ${DAYS[dayIdx].title}（${DAYS[dayIdx].subtitle}）。本週訓練記錄：${weekSummary}。請評估今日做呢個訓練係咪適合，有冇要注意嘅地方？`}
       ]);
-      box.innerHTML=`<div style="font-size:12px;color:var(--cream2);font-family:'Courier Prime',monospace;line-height:1.7">
-        <i class="ti ti-robot" style="color:var(--amber);margin-right:6px"></i>${res.text}
-      </div>`;
-      await new Promise(r=>setTimeout(r,2500));
+      // Show result in a dismissible banner at top of workout if still on that page
+      const body=document.getElementById('trainBody');
+      if(body){
+        const banner=document.createElement('div');
+        banner.style.cssText='background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-card);padding:12px 14px;margin:0 0 12px;font-size:12px;color:var(--cream2);font-family:"Courier Prime",monospace;line-height:1.7;position:relative';
+        banner.innerHTML=`<i class="ti ti-robot" style="color:var(--amber);margin-right:6px"></i>${res.text}<button onclick="this.parentNode.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px">×</button>`;
+        body.prepend(banner);
+      }
     }catch(e){ /* skip if AI fails */ }
   }
-  renderTrain();
 }
 
 function getWeekSummary(){
