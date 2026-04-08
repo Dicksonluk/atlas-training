@@ -1184,15 +1184,20 @@ function ekOld(d,s,e) { return `d${d}s${s}e${e}`; } // backward compat
 function setLogDate(dateStr, forceSelector=false){
   activeLogDate=dateStr;
   activeDay=getDayForDate(dateStr);
-  // If this date has existing log data, show the workout directly (not the selector)
+  // Dates with existing log → show workout directly; otherwise show selector
   const hasLog=Object.keys(logData).some(k=>k.startsWith(dateStr+'_'));
   ui.trainSelector=forceSelector||!hasLog;
-  renderTrain();
+  // Caller is responsible for rendering (avoid double-render when showPage follows)
+}
+function goToDate(dateStr){
+  setLogDate(dateStr);
+  showPage('train');
 }
 function shiftLogDate(n){
   const d=new Date(activeLogDate+'T12:00:00');
   d.setDate(d.getDate()+n);
   setLogDate(d.toISOString().split('T')[0]);
+  renderTrain();
 }
 function toast(m) {
   const t=document.getElementById('toast');
@@ -1875,7 +1880,7 @@ function renderTrain() {
     <button onclick="shiftLogDate(-1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:6px 14px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:var(--r-btn)">←</button>
     <div style="text-align:center">
       <div style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--amber);letter-spacing:1px">${dateLabel}</div>
-      ${!isToday?`<button onclick="setLogDate('${_todayDateStr}')" style="background:var(--rust);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:9px;padding:2px 10px;cursor:pointer;border-radius:var(--r-btn);margin-top:3px">返回今日</button>`:''}
+      ${!isToday?`<button onclick="goToDate('${_todayDateStr}')" style="background:var(--rust);border:none;color:#fff;font-family:'Courier Prime',monospace;font-size:9px;padding:2px 10px;cursor:pointer;border-radius:var(--r-btn);margin-top:3px">返回今日</button>`:''}
     </div>
     <button onclick="shiftLogDate(1)" style="background:none;border:1px solid var(--border2);color:var(--amber);padding:6px 14px;font-family:'Courier Prime',monospace;font-size:14px;cursor:pointer;border-radius:var(--r-btn)">→</button>
   </div>`;
@@ -2536,7 +2541,7 @@ function buildHistoryLog() {
     const dayEm = DAYS[dayIdx]?.em || '';
     const isToday = date === _todayDateStr;
     const barColor = pct >= 80 ? '#8fa840' : pct >= 40 ? 'var(--amber)' : 'var(--dim2)';
-    return `<div onclick="setLogDate('${date}');showPage('train');"
+    return `<div onclick="goToDate('${date}');"
       style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:2px;background:var(--bg3);border-left:3px solid ${isToday ? 'var(--amber)' : 'var(--border2)'};cursor:pointer;transition:opacity 0.15s"
       onmousedown="this.style.opacity='0.7'" onmouseup="this.style.opacity='1'" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
       <div style="flex:1;min-width:0">
@@ -2595,9 +2600,8 @@ function buildCalendar(){
     const planned=weekPlan[ds]!==undefined;
     const pct=log?log.done/log.total:0;
     const dotC=pct>=0.8?'#8fa840':pct>=0.4?'var(--amber)':'var(--rust2)';
-    const hasAny=log||planned;
-    cells+=`<div onclick="${hasAny?`setLogDate('${ds}');showPage('train')`:'void 0'}"
-      style="text-align:center;padding:3px 1px;cursor:${hasAny?'pointer':'default'}">
+    cells+=`<div onclick="goToDate('${ds}')"
+      style="text-align:center;padding:3px 1px;cursor:pointer">
       <div style="width:26px;height:26px;line-height:26px;margin:0 auto;border-radius:50%;
         background:${isToday?'var(--amber)':'transparent'};
         border:${!isToday&&log?'1px solid var(--border2)':planned&&!log?'1px dashed var(--border)':'none'};
