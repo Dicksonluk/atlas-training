@@ -1858,6 +1858,87 @@ const DAY_ICONS = ['🏋️','🔙','🦵','⚡','🏋️','🏐','😴'];
 // Icons: PUSH-heavy, PULL-rows, LEGS-explosive, PUSH-definition, PULL-width, AGILITY, VOLLEYBALL
 const DAY_TI    = ['ti-barbell','ti-arrows-down','ti-bolt','ti-dumbbell','ti-arrow-big-down','ti-run','ti-ball-volleyball'];
 
+function buildDateSummary(dateStr) {
+  const day = DAYS[activeDay];
+  if (!day) return '';
+
+  // Gather logged items for this date+day
+  let total=0, done=0;
+  const sections=[];
+
+  if (day.sections) {
+    day.sections.forEach((sec,si)=>{
+      const items=[];
+      sec.exercises.forEach((ex,ei)=>{
+        const k=`${dateStr}_d${day.id}_s${si}_e${ei}`;
+        const v=logData[k];
+        if(!v) return;
+        total++; if(v.done) done++;
+        items.push({ex,v});
+      });
+      if(items.length) sections.push({label:sec.label,items});
+    });
+  }
+
+  // Custom exercises
+  const cxRaw=localStorage.getItem(`atlas_cx_${dateStr}_d${day.id}`);
+  const cxList=cxRaw?JSON.parse(cxRaw):[];
+  const cxItems=[];
+  cxList.forEach((cx,i)=>{
+    const k=`${dateStr}_d${day.id}_cx_${i}`;
+    const v=logData[k];
+    if(!v) return;
+    total++; if(v.done) done++;
+    cxItems.push({ex:cx,v});
+  });
+  if(cxItems.length) sections.push({label:'自訂動作',items:cxItems});
+
+  const pct=total?Math.round(done/total*100):0;
+  const barC=pct>=80?'#8fa840':pct>=40?'var(--amber)':'var(--rust2)';
+
+  let html=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 16px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <i class="ti ${DAY_TI[activeDay]}" style="font-size:28px;color:var(--amber)"></i>
+      <div style="flex:1">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--cream)">${day.title} <em style="color:var(--amber);font-style:italic">${day.em||''}</em></div>
+        <div style="font-family:'Courier Prime',monospace;font-size:10px;color:var(--dim)">${day.subtitle}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:${barC}">${pct}%</div>
+        <div style="font-family:'Courier Prime',monospace;font-size:10px;color:var(--dim2)">${done}/${total} 完成</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+      <div style="width:${pct}%;height:100%;background:${barC};border-radius:2px;transition:width 0.4s"></div>
+    </div>
+  </div>`;
+
+  if(!sections.length){
+    html+=`<div style="padding:20px;text-align:center;color:var(--dim);font-family:'Courier Prime',monospace;font-size:12px">暫無動作記錄</div>`;
+    return html;
+  }
+
+  sections.forEach(({label,items})=>{
+    html+=`<div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:2px;color:var(--dim2);padding:8px 0 5px">${label.toUpperCase()}</div>`;
+    items.forEach(({ex,v})=>{
+      const setsLogged=(v.sets||[]).filter(s=>s&&(s.weight||s.reps));
+      const setsHtml=setsLogged.map((s,i)=>
+        `<span style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 8px;font-size:11px;font-family:'Courier Prime',monospace;color:var(--cream2);white-space:nowrap">${s.weight||'—'}<span style="color:var(--dim2);font-size:9px">kg</span> × ${s.reps||'—'}</span>`
+      ).join('');
+      html+=`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--bg2);border-radius:var(--r-card);border-left:3px solid ${v.done?barC:'var(--border)'}">
+        <span style="font-size:15px;margin-top:1px;flex-shrink:0">${v.done?'✓':'·'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:${v.done?'var(--cream)':'var(--dim2)'}">${ex.name}</div>
+          ${setsHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${setsHtml}</div>`:''}
+          ${v.actualNote?`<div style="font-size:11px;color:var(--dim);font-family:'Courier Prime',monospace;margin-top:4px">${v.actualNote}</div>`:''}
+        </div>
+      </div>`;
+    });
+  });
+
+  return html;
+}
+
 function daysSinceLastLog(dayIdx){
   const dates=Object.keys(logData)
     .filter(k=>k.match(new RegExp(`_d${dayIdx}_`)))
@@ -1959,21 +2040,33 @@ function renderTrain() {
         <div class="train-type-grid">${cards}</div>
       </div>`;
   } else {
-    pg.innerHTML=`${dateBar}
-      <div class="strip-wrap">
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px">
-          <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px">
-            <i class="ti ti-switch-3" style="margin-right:4px"></i>更換訓練
-          </button>
-          <div class="day-strip" style="flex:1;padding-bottom:0">
-            ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})">
-              <div class="dp-l">${d.label}</div><div class="dp-n">${d.name}</div>
-            </div>`).join('')}
+    const isPastWithLog = activeLogDate < _todayDateStr && Object.keys(logData).some(k=>k.startsWith(activeLogDate+'_'));
+    if (isPastWithLog) {
+      pg.innerHTML=`${dateBar}
+        <div style="padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn)">← 返回</button>
+            <span style="font-family:'Courier Prime',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px">// 訓練記錄</span>
+          </div>
+          ${buildDateSummary(activeLogDate)}
+        </div>`;
+    } else {
+      pg.innerHTML=`${dateBar}
+        <div class="strip-wrap">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px">
+            <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px">
+              <i class="ti ti-switch-3" style="margin-right:4px"></i>更換訓練
+            </button>
+            <div class="day-strip" style="flex:1;padding-bottom:0">
+              ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})">
+                <div class="dp-l">${d.label}</div><div class="dp-n">${d.name}</div>
+              </div>`).join('')}
+            </div>
           </div>
         </div>
-      </div>
-      <div class="train-body" id="trainBody"></div>`;
-    renderDayContent();
+        <div class="train-body" id="trainBody"></div>`;
+      renderDayContent();
+    }
   }
 }
 
