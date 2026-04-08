@@ -2012,34 +2012,57 @@ function getMuscleIcon(tags){
 }
 
 function buildSetLog(k, sets) {
-  const match = sets.match(/^(\d+)/);
-  const numSets = match ? parseInt(match[1]) : 3;
+  // Parse "3–4×8" → base=3, max=4. Or "4×4–6" → base=4 (sets), reps range is separate
+  const match = sets.match(/^(\d+)(?:[–\-](\d+))?/);
+  const baseMin = match ? parseInt(match[1]) : 3;
+  const baseMax = (match && match[2]) ? parseInt(match[2]) : baseMin;
+  const extraSets = ui[k+'_xs'] || 0;
+  const numSets = baseMax + extraSets;
   const saved = logData[k]?.sets || [];
   const savedNote = logData[k]?.actualNote||'';
+
   let html = `<div style="margin-bottom:10px">
     <div style="font-family:Courier Prime,monospace;font-size:9px;letter-spacing:2px;color:var(--amber);margin-bottom:6px">// 實際動作（如有替換請填寫）</div>
     <input type="text" placeholder="例：用 Cable Row 代替、用 Smith Machine..." value="${savedNote}"
-      style="width:100%;background:var(--bg3);border:1px solid var(--border2);padding:8px 10px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:2px;box-sizing:border-box"
+      style="width:100%;background:var(--bg3);border:1px solid var(--border2);padding:8px 10px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:12px;outline:none;border-radius:var(--r-sm);box-sizing:border-box"
       onchange="saveActualNote('${k}',this.value)">
   </div>`;
   html += '<div style="font-family:Courier Prime,monospace;font-size:9px;letter-spacing:2px;color:var(--amber);margin-bottom:10px">// 每組記錄</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat('+Math.min(numSets,4)+',1fr);gap:6px;margin-bottom:10px">';
+  const cols = Math.min(numSets, 4);
+  html += `<div id="setgrid_${k}" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:6px;margin-bottom:10px">`;
   for (let i=0; i<numSets; i++) {
     const s = saved[i] || {};
-    html += `<div style="background:var(--bg3);border:1px solid var(--border2);padding:8px 6px;text-align:center">
+    html += `<div style="background:var(--bg3);border:1px solid var(--border2);padding:8px 6px;text-align:center;border-radius:var(--r-sm)">
       <div style="font-size:8px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">SET ${i+1}</div>
       <input type="number" placeholder="kg" value="${s.w||''}"
         style="width:100%;background:transparent;border:none;outline:none;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--amber);text-align:center"
-        id="sw_${k}_${i}" onchange="saveSet('${k}',${i},'w',this.value)">
+        onchange="saveSet('${k}',${i},'w',this.value)">
       <div style="height:1px;background:var(--border);margin:4px 0"></div>
       <input type="number" placeholder="reps" value="${s.r||''}"
         style="width:100%;background:transparent;border:none;outline:none;font-family:'Courier Prime',monospace;font-size:12px;color:var(--cream2);text-align:center"
-        id="sr_${k}_${i}" onchange="saveSet('${k}',${i},'r',this.value)">
+        onchange="saveSet('${k}',${i},'r',this.value)">
     </div>`;
   }
   html += '</div>';
-  html += `<button onclick="markDone('${k}')" style="width:100%;background:var(--amber);border:none;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:var(--bg);cursor:pointer;box-shadow:2px 2px 0 var(--rust)">— MARK COMPLETE —</button>`;
+  html += `<div style="display:flex;gap:8px;margin-bottom:10px">
+    <button onclick="addExtraSet('${k}')"
+      style="background:transparent;border:1px dashed var(--border2);border-radius:var(--r-btn);padding:6px 16px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim2);cursor:pointer;letter-spacing:1px;flex:1;transition:all 0.2s"
+      onmousedown="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'"
+      onmouseup="this.style.borderColor='';this.style.color=''">+ SET</button>
+    ${numSets > baseMin ? `<button onclick="removeExtraSet('${k}')"
+      style="background:transparent;border:1px dashed var(--border2);border-radius:var(--r-btn);padding:6px 14px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim2);cursor:pointer;letter-spacing:1px;transition:all 0.2s">− SET</button>` : ''}
+  </div>`;
+  html += `<button onclick="markDone('${k}')" style="width:100%;background:linear-gradient(135deg,var(--amber),var(--gold));border:none;padding:12px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:var(--bg);cursor:pointer;border-radius:var(--r-btn);box-shadow:0 4px 14px rgba(240,168,48,0.35)">— MARK COMPLETE —</button>`;
   return html;
+}
+
+function addExtraSet(k) {
+  ui[k+'_xs'] = (ui[k+'_xs']||0) + 1;
+  renderDayContent();
+}
+function removeExtraSet(k) {
+  if((ui[k+'_xs']||0) > 0) ui[k+'_xs']--;
+  renderDayContent();
 }
 
 function saveActualNote(k, val) {
