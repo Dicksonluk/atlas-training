@@ -155,63 +155,29 @@ body::after {
 .train-selector { padding: 16px; }
 .train-selector-hdr { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px; color:var(--dim2); margin:20px 0 10px; text-transform:uppercase; }
 
-/* Hero CTA for today's recommended training */
-.today-train-hero {
-  background: linear-gradient(135deg, #2a1a08 0%, var(--bg3) 100%);
-  border: 1.5px solid var(--amber);
-  border-radius: var(--r);
-  padding: 22px 20px 18px;
-  margin-bottom: 8px;
-  position: relative; overflow: hidden;
-  box-shadow: 0 6px 32px rgba(240,168,48,0.15);
-}
-.today-train-hero::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:3px;
-  background: linear-gradient(90deg, var(--rust), var(--amber), var(--gold));
-}
-.today-train-hero::after {
-  content:'今日'; position:absolute; top:14px; right:16px;
-  font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px;
-  color:var(--amber); opacity:0.6;
-}
-.tth-icon { font-size:48px; color:var(--amber); margin-bottom:10px; display:block; line-height:1; }
-.tth-title { font-family:'Playfair Display',serif; font-size:32px; font-weight:900; color:var(--cream); line-height:1; }
-.tth-em { color:var(--amber); font-style:italic; }
-.tth-sub { font-size:11px; color:var(--dim); font-family:'Courier Prime',monospace; margin:5px 0 16px; letter-spacing:0.5px; }
-.tth-btn {
-  display:block; width:100%; padding:14px;
-  background: linear-gradient(90deg, var(--rust), var(--rust2));
-  border:none; border-radius:var(--r-btn); color:#fff;
-  font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700;
-  letter-spacing:3px; cursor:pointer; transition:all 0.2s;
-  box-shadow: 0 4px 16px rgba(200,72,32,0.4);
-}
-.tth-btn:active { transform:scale(0.98); }
-
-/* AI eval box — shown after selection in hero */
+/* AI eval box */
 .train-ai-box { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r-card); padding:14px 16px; margin-top:10px; min-height:44px; }
 .train-ai-thinking { display:flex; gap:5px; align-items:center; }
 
-/* Smaller alt cards grid */
-.train-type-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
-.train-type-card {
-  background: linear-gradient(135deg, var(--bg2), var(--bg3));
-  border: 1px solid var(--border);
-  border-radius: var(--r-card); padding: 12px 10px;
-  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  text-align: left;
+/* Training type list */
+.train-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.train-list-row {
+  display:flex; align-items:center; gap:14px;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--r-card); padding:14px 16px;
+  cursor:pointer; transition:all 0.2s;
 }
-.train-type-card:active { transform: scale(0.95); }
-.train-type-card.recommended { border-color: rgba(240,168,48,0.5); }
-.train-type-card.done-today { border-color: rgba(107,122,48,0.4); opacity:0.65; }
-.ttc-icon { font-size:22px; margin-bottom:5px; display:block; }
-.ttc-name { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:var(--cream); line-height:1; letter-spacing:1px; }
-.ttc-sub { font-size:9px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ttc-badge { position:absolute; top:6px; right:6px; font-size:8px; font-family:'Courier Prime',monospace; padding:1px 6px; border-radius:var(--r-btn); }
-.ttc-badge.fresh { background:rgba(107,122,48,0.2); color:#8fa840; border:1px solid rgba(107,122,48,0.3); }
-.ttc-badge.recent { background:rgba(240,168,48,0.12); color:var(--amber); border:1px solid rgba(240,168,48,0.25); }
-.ttc-badge.done { background:rgba(200,72,32,0.12); color:var(--rust2); border:1px solid rgba(200,72,32,0.25); }
+.train-list-row:active { transform:scale(0.98); background:var(--bg3); }
+.train-list-row.recommended { border-color:rgba(240,168,48,0.5); }
+.train-list-row.done-today { opacity:0.6; }
+.train-list-icon { font-size:26px; color:var(--amber); flex-shrink:0; }
+.train-list-body { flex:1; min-width:0; }
+.train-list-title { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; color:var(--cream); letter-spacing:1px; line-height:1; }
+.train-list-sub { font-size:10px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.train-list-badge { font-size:9px; font-family:'Courier Prime',monospace; padding:2px 8px; border-radius:var(--r-btn); flex-shrink:0; white-space:nowrap; }
+.train-list-badge.fresh { background:rgba(107,122,48,0.2); color:#8fa840; border:1px solid rgba(107,122,48,0.3); }
+.train-list-badge.recent { background:rgba(240,168,48,0.12); color:var(--amber); border:1px solid rgba(240,168,48,0.25); }
+.train-list-badge.done-badge { background:rgba(200,72,32,0.12); color:var(--rust2); border:1px solid rgba(200,72,32,0.25); }
 
 /* PAGES */
 .page {
@@ -1160,19 +1126,28 @@ async function syncToSheets(silent=false) {
   setTimeout(()=>{ syncStatus='idle'; updateSyncBtn(); }, 3000);
 }
 async function loadFromSheets() {
-  toast('\u8f09\u5165\u4e2d...');
+  toast('載入中...');
   try {
     const res = await fetch(SHEETS_URL+'?action=load');
     const data = await res.json();
     if (data.success && data.log) {
       const {_weight, ...trainLog} = data.log;
-      logData=trainLog; if(_weight) weightData=_weight;
+      // Merge: keep all entries from both sources; prefer newer timestamp
+      const merged = {...trainLog};
+      Object.entries(logData).forEach(([k, v]) => {
+        if (!merged[k] || (v.ts && merged[k].ts && v.ts > merged[k].ts)) {
+          merged[k] = v;
+        }
+      });
+      logData = merged;
+      if (_weight) weightData = Object.assign({}, _weight, weightData); // local weight takes priority
       saveLog(); saveWeightData();
-      toast('\u2713 \u5df2\u5f9eGoogle Sheets\u6062\u5fa9\u8a18\u9304\uff01');
+      const added = Object.keys(merged).length - Object.keys(trainLog).length;
+      toast('✓ 已同步！' + (added > 0 ? ` 保留 ${added} 條本地新記錄。` : ''));
       if(currentPage==='train') renderDayContent();
       if(currentPage==='progress') renderProgress();
     }
-  } catch(e) { toast('\u26a0 \u8f09\u5165\u5931\u6557'); }
+  } catch(e) { toast('⚠ 載入失敗'); }
 }
 function updateSyncBtn() {
   const btn=document.getElementById('syncBtn');
@@ -1999,25 +1974,22 @@ function renderTrain() {
   </div>`;
 
   if(showSelector){
-    // Training type selector — hero CTA + alt grid
-    const today=DAYS[activeDay];
-    const heroAgo=daysSinceLastLog(activeDay);
-    const heroAgoLabel=heroAgo===0?'今日已做':heroAgo===null?'首次訓練':`${heroAgo}日前上次`;
-
-    // Alt cards (all 7, smaller, skip styling for today)
-    const cards=DAYS.map((day,i)=>{
+    // Training list — gym days only (no volleyball), ordered 0-5
+    const rows=DAYS.slice(0,6).map((day,i)=>{
       const ago=daysSinceLastLog(i);
-      let badgeHtml='', cardClass='train-type-card';
-      if(ago===0){ badgeHtml=`<span class="ttc-badge done">✓今日</span>`; cardClass+=' done-today'; }
-      else if(ago===null){ badgeHtml=`<span class="ttc-badge fresh">新</span>`; }
-      else if(ago>=3){ badgeHtml=`<span class="ttc-badge fresh">${ago}天</span>`; cardClass+=' recommended'; }
-      else { badgeHtml=`<span class="ttc-badge recent">${ago}天</span>`; }
-
-      return `<div class="${cardClass}" onclick="selectTrainingType(${i})">
-        ${badgeHtml}
-        <i class="ti ${DAY_TI[i]} ttc-icon" style="color:${i===activeDay?'var(--amber)':'var(--dim)'}"></i>
-        <div class="ttc-name">${day.title}</div>
-        <div class="ttc-sub">${day.label}</div>
+      let badgeClass='fresh', badgeLabel='首次';
+      if(ago===0){ badgeClass='done-badge'; badgeLabel='✓今日'; }
+      else if(ago!==null && ago<=2){ badgeClass='recent'; badgeLabel=`${ago}天前`; }
+      else if(ago!==null){ badgeClass='fresh'; badgeLabel=`${ago}天前`; }
+      const rowClass='train-list-row'+(ago>=3?' recommended':'')+(ago===0?' done-today':'');
+      return `<div class="${rowClass}" onclick="selectTrainingType(${i})">
+        <i class="ti ${DAY_TI[i]} train-list-icon"></i>
+        <div class="train-list-body">
+          <div class="train-list-title">${day.title} <em style="color:var(--amber);font-style:italic;font-size:14px">${day.em||''}</em></div>
+          <div class="train-list-sub">${day.subtitle}</div>
+        </div>
+        <span class="train-list-badge ${badgeClass}">${badgeLabel}</span>
+        <i class="ti ti-chevron-right" style="color:var(--dim2);font-size:14px;flex-shrink:0"></i>
       </div>`;
     }).join('');
 
@@ -2057,19 +2029,9 @@ function renderTrain() {
             style="width:100%;margin-top:7px;background:var(--bg3);border:1px solid var(--border);padding:5px 10px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:11px;outline:none;border-radius:4px;box-sizing:border-box">
           <div id="ciPlanOut" style="margin-top:8px"></div>
         </div>`:''}
-        <!-- TODAY'S HERO CARD -->
-        <div class="today-train-hero" id="trainHero">
-          <i class="ti ${DAY_TI[activeDay]} tth-icon"></i>
-          <div class="tth-title">${today.title} <em class="tth-em">${today.em||''}</em></div>
-          <div class="tth-sub">${today.subtitle}<span style="margin-left:10px;opacity:0.5">· ${heroAgoLabel}</span></div>
-          <button class="tth-btn" onclick="selectTrainingType(${activeDay})">
-            <i class="ti ti-player-play" style="margin-right:6px"></i>開始今日訓練
-          </button>
-          <div id="trainAiBox" style="display:none" class="train-ai-box"></div>
-        </div>
-        <!-- OTHER OPTIONS -->
-        <div class="train-selector-hdr">// 或者揀其他訓練類型</div>
-        <div class="train-type-grid">${cards}</div>
+        <!-- TRAINING LIST (gym days only, no volleyball) -->
+        <div class="train-selector-hdr">// 揀訓練類型</div>
+        <div class="train-list">${rows}</div>
       </div>`;
   } else {
     const isPastWithLog = activeLogDate < _todayDateStr && Object.keys(logData).some(k=>k.startsWith(activeLogDate+'_'));
@@ -2083,17 +2045,15 @@ function renderTrain() {
           ${buildDateSummary(activeLogDate)}
         </div>`;
     } else {
+      const curDay=DAYS[activeDay];
       pg.innerHTML=`${dateBar}
-        <div class="strip-wrap">
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px">
-            <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px">
-              <i class="ti ti-switch-3" style="margin-right:4px"></i>更換訓練
-            </button>
-            <div class="day-strip" style="flex:1;padding-bottom:0">
-              ${DAYS.map((d,i)=>`<div class="day-pill ${i===activeDay?'active':''} ${d.type==='sport'?'sport':''}" onclick="setDay(${i})">
-                <div class="dp-l">${d.label}</div><div class="dp-n">${d.name}</div>
-              </div>`).join('')}
-            </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
+          <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px;flex-shrink:0">
+            <i class="ti ti-switch-3" style="margin-right:4px"></i>更換
+          </button>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--cream);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${curDay.title} <em style="color:var(--amber);font-style:italic">${curDay.em||''}</em>
+            <span style="font-family:'Courier Prime',monospace;font-size:10px;color:var(--dim);font-weight:400;font-style:normal;margin-left:6px">${curDay.subtitle}</span>
           </div>
         </div>
         <div class="train-body" id="trainBody"></div>`;
@@ -2847,7 +2807,7 @@ function renderProgress() {
       <div style="font-family:'Courier Prime',monospace;font-size:9px;letter-spacing:3px;color:var(--amber);margin-bottom:12px">// 體重記錄</div>
       ${buildWeightChart()}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="loadFromSheets()" style="flex:1;background:transparent;border:1px solid var(--border2);padding:8px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim);cursor:pointer;letter-spacing:1px">⬇ 從Google Sheets恢復</button>
+        <button onclick="loadFromSheets()" style="flex:1;background:transparent;border:1px solid var(--border2);padding:8px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--dim);cursor:pointer;letter-spacing:1px">⬇ 從Sheets合併同步</button>
         <button onclick="syncToSheets()" style="flex:1;background:var(--amber);border:none;padding:8px;font-family:'Courier Prime',monospace;font-size:11px;color:var(--bg);font-weight:700;cursor:pointer;letter-spacing:1px">☁ 立即同步</button>
       </div>
       <div style="font-size:10px;color:var(--dim2);font-family:'Courier Prime',monospace;margin-top:8px;text-align:center">
