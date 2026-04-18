@@ -1190,11 +1190,16 @@ function ekOld(d,s,e) { return `d${d}s${s}e${e}`; } // backward compat
 
 function setLogDate(dateStr, forceSelector=false){
   activeLogDate=dateStr;
-  activeDay=getDayForDate(dateStr);
-  // Dates with existing log → show workout directly; otherwise show selector
   const hasLog=Object.keys(logData).some(k=>k.startsWith(dateStr+'_'));
+  if(hasLog && !forceSelector){
+    // Read actual logged day from key (format: {date}_d{dayIdx}_s..._e...)
+    const loggedKey=Object.keys(logData).find(k=>k.startsWith(dateStr+'_d'));
+    const dayIdx=loggedKey ? parseInt(loggedKey.slice(dateStr.length+2)) : NaN;
+    activeDay=isNaN(dayIdx) ? getDayForDate(dateStr) : dayIdx;
+  } else {
+    activeDay=getDayForDate(dateStr);
+  }
   ui.trainSelector=forceSelector||!hasLog;
-  // Caller is responsible for rendering (avoid double-render when showPage follows)
 }
 function goToDate(dateStr){
   setLogDate(dateStr);
