@@ -153,28 +153,49 @@ body::after {
 
 /* TRAINING TYPE SELECTOR */
 .train-selector { padding: 16px; }
-.train-selector-hdr { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px; color:var(--dim2); margin:20px 0 10px; text-transform:uppercase; }
+.train-selector-hdr { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:3px; color:var(--dim2); margin:20px 0 12px; text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+.train-selector-hdr::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
 
 /* AI eval box */
 .train-ai-box { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r-card); padding:14px 16px; margin-top:10px; min-height:44px; }
 .train-ai-thinking { display:flex; gap:5px; align-items:center; }
 
 /* Training type list */
-.train-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.train-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
 .train-list-row {
-  display:flex; align-items:center; gap:14px;
-  background:var(--bg2); border:1px solid var(--border);
-  border-radius:var(--r-card); padding:14px 16px;
-  cursor:pointer; transition:all 0.2s;
+  display:flex; align-items:center; gap:16px;
+  background: linear-gradient(140deg, var(--bg2) 0%, rgba(22,14,4,0.98) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 18px 16px 14px;
+  cursor:pointer; transition:all 0.25s;
+  position:relative; overflow:hidden;
+  min-height: 82px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
 }
-.train-list-row:active { transform:scale(0.98); background:var(--bg3); }
-.train-list-row.recommended { border-color:rgba(240,168,48,0.5); }
-.train-list-row.done-today { opacity:0.6; }
-.train-list-icon { font-size:26px; color:var(--amber); flex-shrink:0; }
+.train-list-row::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg, var(--amber), var(--rust));
+  border-radius: 16px 0 0 16px;
+}
+.train-list-row:active { transform:scale(0.985); box-shadow: 0 1px 8px rgba(0,0,0,0.35); }
+.train-list-row.recommended {
+  border-color:rgba(240,168,48,0.4);
+  box-shadow: 0 4px 28px rgba(240,168,48,0.12), 0 4px 20px rgba(0,0,0,0.35);
+}
+.train-list-row.done-today { opacity:0.52; }
+.train-list-icon-wrap {
+  width:52px; height:52px; border-radius:50%;
+  background:rgba(240,168,48,0.1); border:1.5px solid rgba(240,168,48,0.22);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  box-shadow: 0 0 16px rgba(240,168,48,0.08);
+}
+.train-list-icon { font-size:24px; color:var(--amber); }
 .train-list-body { flex:1; min-width:0; }
-.train-list-title { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; color:var(--cream); letter-spacing:1px; line-height:1; }
-.train-list-sub { font-size:10px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.train-list-badge { font-size:9px; font-family:'Courier Prime',monospace; padding:2px 8px; border-radius:var(--r-btn); flex-shrink:0; white-space:nowrap; }
+.train-list-title { font-family:'Barlow Condensed',sans-serif; font-size:21px; font-weight:700; color:var(--cream); letter-spacing:1.5px; line-height:1.1; }
+.train-list-title em { font-family:'Playfair Display',serif; color:var(--amber); font-style:italic; font-size:19px; font-weight:700; }
+.train-list-sub { font-size:10px; color:var(--dim); font-family:'Courier Prime',monospace; margin-top:5px; letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.train-list-badge { font-size:9px; font-family:'Courier Prime',monospace; padding:3px 10px; border-radius:var(--r-btn); flex-shrink:0; white-space:nowrap; }
 .train-list-badge.fresh { background:rgba(107,122,48,0.2); color:#8fa840; border:1px solid rgba(107,122,48,0.3); }
 .train-list-badge.recent { background:rgba(240,168,48,0.12); color:var(--amber); border:1px solid rgba(240,168,48,0.25); }
 .train-list-badge.done-badge { background:rgba(200,72,32,0.12); color:var(--rust2); border:1px solid rgba(200,72,32,0.25); }
@@ -568,23 +589,24 @@ input[type=range]::-webkit-slider-thumb {
 
 /* EXERCISE CARD */
 .ex-card {
-  background: linear-gradient(160deg, var(--bg2) 0%, rgba(26,18,6,0.95) 100%);
+  background: linear-gradient(150deg, var(--bg2) 0%, rgba(20,13,4,0.97) 100%);
   border: 1px solid var(--border);
+  border-left: 3px solid rgba(240,168,48,0.35);
   border-radius: var(--r-card); margin-bottom: 10px; overflow: hidden;
   transition: all 0.2s;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
 }
 .ex-card:active { transform: scale(0.99); box-shadow: 0 1px 6px rgba(0,0,0,0.3); }
-.ex-card.done { border-color: rgba(107,122,48,0.5); box-shadow: 0 3px 14px rgba(107,122,48,0.1); }
-.ex-main { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; }
+.ex-card.done { border-color: rgba(107,122,48,0.45); border-left-color: rgba(107,122,48,0.6); box-shadow: 0 3px 14px rgba(107,122,48,0.08); }
+.ex-main { display: flex; align-items: center; gap: 14px; padding: 16px 16px; cursor: pointer; }
 .ex-num {
-  font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900;
+  font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900;
   color: var(--border2); min-width: 36px; line-height: 1;
-  text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
 }
-.ex-card.done .ex-num { color: rgba(107,122,48,0.4); }
+.ex-card.done .ex-num { color: rgba(107,122,48,0.35); }
 .ex-body { flex: 1; min-width: 0; }
-.ex-name { font-weight: 700; font-size: 14px; line-height: 1.2; margin-bottom: 5px; color: var(--cream); letter-spacing: 0.3px; }
+.ex-name { font-weight: 700; font-size: 15px; line-height: 1.2; margin-bottom: 6px; color: var(--cream); letter-spacing: 0.4px; }
 .ex-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .ex-badge {
   font-family: 'Courier Prime', monospace; font-size: 10px;
@@ -1983,13 +2005,15 @@ function renderTrain() {
       else if(ago!==null){ badgeClass='fresh'; badgeLabel=`${ago}天前`; }
       const rowClass='train-list-row'+(ago>=3?' recommended':'')+(ago===0?' done-today':'');
       return `<div class="${rowClass}" onclick="selectTrainingType(${i})">
-        <i class="ti ${DAY_TI[i]} train-list-icon"></i>
+        <div class="train-list-icon-wrap"><i class="ti ${DAY_TI[i]} train-list-icon"></i></div>
         <div class="train-list-body">
-          <div class="train-list-title">${day.title} <em style="color:var(--amber);font-style:italic;font-size:14px">${day.em||''}</em></div>
+          <div class="train-list-title">${day.title}${day.em?` <em>${day.em}</em>`:''}</div>
           <div class="train-list-sub">${day.subtitle}</div>
         </div>
-        <span class="train-list-badge ${badgeClass}">${badgeLabel}</span>
-        <i class="ti ti-chevron-right" style="color:var(--dim2);font-size:14px;flex-shrink:0"></i>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+          <span class="train-list-badge ${badgeClass}">${badgeLabel}</span>
+          <i class="ti ti-chevron-right" style="color:var(--border2);font-size:13px"></i>
+        </div>
       </div>`;
     }).join('');
 
@@ -2047,13 +2071,16 @@ function renderTrain() {
     } else {
       const curDay=DAYS[activeDay];
       pg.innerHTML=`${dateBar}
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
-          <button onclick="ui.trainSelector=true;renderTrain()" style="background:none;border:1px solid var(--border2);color:var(--dim2);padding:4px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(135deg,var(--bg2),rgba(20,13,4,0.98));border-bottom:1px solid rgba(240,168,48,0.2);position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--amber),var(--rust))"></div>
+          <button onclick="ui.trainSelector=true;renderTrain()" style="background:rgba(240,168,48,0.08);border:1px solid rgba(240,168,48,0.25);color:var(--amber);padding:5px 12px;font-family:'Courier Prime',monospace;font-size:10px;cursor:pointer;border-radius:var(--r-btn);letter-spacing:1px;flex-shrink:0;transition:all 0.2s">
             <i class="ti ti-switch-3" style="margin-right:4px"></i>更換
           </button>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--cream);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${curDay.title} <em style="color:var(--amber);font-style:italic">${curDay.em||''}</em>
-            <span style="font-family:'Courier Prime',monospace;font-size:10px;color:var(--dim);font-weight:400;font-style:normal;margin-left:6px">${curDay.subtitle}</span>
+          <div style="min-width:0">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:var(--cream);letter-spacing:1.5px;line-height:1.1">
+              ${curDay.title}${curDay.em?` <em style="font-family:'Playfair Display',serif;color:var(--amber);font-style:italic;font-size:17px">${curDay.em}</em>`:''}
+            </div>
+            <div style="font-family:'Courier Prime',monospace;font-size:10px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${curDay.subtitle}</div>
           </div>
         </div>
         <div class="train-body" id="trainBody"></div>`;
