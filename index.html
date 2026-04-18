@@ -1134,7 +1134,6 @@ async function syncToSheets(silent=false) {
   try {
     await fetch(SHEETS_URL, {
       method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action:'save', log: {...logData, _weight: weightData} })
     });
     syncStatus='success';
