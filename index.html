@@ -1136,6 +1136,7 @@ async function syncToSheets(silent=false) {
     try {
       const res = await fetch(SHEETS_URL+'?action=load');
       const remote = await res.json();
+      console.log('[Sync] remote data:', JSON.stringify(remote).slice(0,200));
       if(remote.success && remote.log) {
         const {_weight:rw, ...rLog} = remote.log;
         Object.entries(rLog).forEach(([k,v])=>{
@@ -1144,7 +1145,7 @@ async function syncToSheets(silent=false) {
         if(rw) weightData={...rw,...weightData};
         saveLog(); saveWeightData();
       }
-    } catch(_){} // best-effort pull; don't abort push if read fails
+    } catch(err){ console.error('[Sync] load error:', err); }
     // Step 2: push merged data
     await fetch(SHEETS_URL, {
       method:'POST', mode:'no-cors',
